@@ -106,6 +106,24 @@ CREATE TABLE comments (
 );
 ```
 
+## Using the Provided Database Dump
+- Import `database.sql` to preload the schema and sample data shipped with this repository:
+  ```bash
+  psql -U postgres -d ticketing -f database.sql
+  ```
+  Running under Docker? Copy the dump into the container, then execute it:
+  ```bash
+  docker compose cp database.sql db:/tmp/database.sql
+  docker compose exec db psql -U postgres -d ticketing -f /tmp/database.sql
+  ```
+- The dump already includes role-specific accounts you can use for testing:
+  | Role   | Email              | Password   |
+  |--------|--------------------|------------|
+  | Admin  | Admin@tnd.dz       | Admin@1234 |
+  | Agent  | Agent@tnd.dz       | test       |
+  | Client | Client@ooredoo.dz  | test       |
+- Passwords are stored hashed in the database; the table above lists the plain-text credentials for signing in through the UI.
+
 ### Sample Admin Seed
 ```sql
 INSERT INTO users (full_name, email, password_hash, role)
