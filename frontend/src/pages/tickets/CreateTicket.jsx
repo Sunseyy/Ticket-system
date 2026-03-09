@@ -18,6 +18,9 @@ export default function CreateTicket() {
     department: "",
   });
 
+  // NEW: State for file upload
+  const [selectedFile, setSelectedFile] = useState(null);
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,6 +48,7 @@ export default function CreateTicket() {
     };
 
     try {
+      // 1. Create the Ticket
       const res = await fetch("http://localhost:5000/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,6 +62,23 @@ export default function CreateTicket() {
 
       const data = await res.json();
       console.log("Ticket created:", data);
+
+      // 2. Upload file if one was selected
+      if (selectedFile && data.id) {
+        const fileData = new FormData();
+        fileData.append("file", selectedFile);
+        fileData.append("userId", user.id);
+
+        const attachRes = await fetch(`http://localhost:5000/tickets/${data.id}/attachments`, {
+          method: "POST",
+          body: fileData,
+        });
+
+        if (!attachRes.ok) {
+          console.error("Ticket created, but attachment failed to upload.");
+          // We don't throw here so they still go to the dashboard since the ticket was created
+        }
+      }
 
       navigate("/dashboard");
     } catch (err) {
@@ -111,6 +132,15 @@ export default function CreateTicket() {
               onChange={handleChange}
               className="form-textarea"
               required
+            />
+          </div>
+
+          {/* NEW: File Upload Field */}
+          <div className="form-group" style={{ padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px', border: '1px dashed #ccc' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Attach a File (Logs, Errors, etc.):</label>
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files[0])}
             />
           </div>
 

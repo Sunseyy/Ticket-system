@@ -197,69 +197,68 @@ function AgentTickets() {
       </div>
 
       {loading ? (
-        <div className="tickets-loading">Loading tickets…</div>
+        <div className="tickets-loading">
+          <div className="loading-spinner"></div>
+          <span>Loading tickets...</span>
+        </div>
       ) : filteredTickets.length === 0 ? (
-        <div className="tickets-empty">No tickets match the selected filters.</div>
+        <div className="tickets-empty">
+          <div className="empty-icon">📭</div>
+          <p>No tickets match the selected filters.</p>
+        </div>
       ) : (
-        <div className="tickets-table-wrapper">
-          <table className="tickets-table">
-            <thead>
-              <tr>
-                <th>Ticket</th>
-                <th>Client</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Assignment</th>
-                <th>Department</th>
-                <th>Updated</th>
-                <th>Created</th>
-                <th className="actions-column">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.map((ticket) => (
-                <tr key={ticket.id}>
-                  <td>
-                    <div className="ticket-title">{ticket.title}</div>
-                    {ticket.description && (
-                      <div className="ticket-description" title={ticket.description}>
-                        {ticket.description}
-                      </div>
-                    )}
-                  </td>
-                  <td>{ticket.created_by_name || <span className="text-muted">Unknown</span>}</td>
-                  <td>
-                    <span className={statusClassName(ticket.status)}>
-                      {formatStatusLabel(ticket.status)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={priorityClassName(ticket.priority)}>
-                      {formatPriority(ticket.priority)}
-                    </span>
-                  </td>
-                  <td>
-                    {ticket.assigned_agent_name ? (
-                      ticket.assigned_agent_name
-                    ) : (
-                      <span className="text-muted">Unassigned</span>
-                    )}
-                  </td>
-                  <td>{ticket.department || <span className="text-muted">-</span>}</td>
-                  <td>{formatDateTime(ticket.updated_at || ticket.created_at)}</td>
-                  <td>{formatDateTime(ticket.created_at)}</td>
-                  <td className="actions-column">
-                    <button
-                      className="action-button"
-                      onClick={() => handleOpenTicket(ticket.id)}
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="tickets-grid">
+          {filteredTickets.map((ticket) => (
+            <article
+              key={ticket.id}
+              className="ticket-card"
+              onClick={() => handleOpenTicket(ticket.id)}
+            >
+              <header className="ticket-card-header">
+                <span className="ticket-card-id">#{ticket.id}</span>
+                <div className="ticket-card-badges">
+                  <span className={statusClassName(ticket.status)}>
+                    {formatStatusLabel(ticket.status)}
+                  </span>
+                  <span className={priorityClassName(ticket.priority)}>
+                    {formatPriority(ticket.priority)}
+                  </span>
+                </div>
+              </header>
+              <h3 className="ticket-card-title">{ticket.title}</h3>
+              {ticket.description && (
+                <p className="ticket-card-desc">{ticket.description}</p>
+              )}
+              <div className="ticket-card-meta">
+                <div className="meta-item">
+                  <span className="meta-label">Client</span>
+                  <span className="meta-value">{ticket.created_by_name || "Unknown"}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Department</span>
+                  <span className="meta-value">{ticket.department || "-"}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Assigned</span>
+                  <span className="meta-value">{ticket.assigned_agent_name || "Unassigned"}</span>
+                </div>
+              </div>
+              <footer className="ticket-card-footer">
+                <span className="ticket-card-date">
+                  Updated {formatDateTime(ticket.updated_at || ticket.created_at)}
+                </span>
+                <button
+                  className="view-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenTicket(ticket.id);
+                  }}
+                >
+                  View Details →
+                </button>
+              </footer>
+            </article>
+          ))}
         </div>
       )}
     </div>

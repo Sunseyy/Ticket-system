@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import "./TicketDetails.css";
 
@@ -7,7 +7,13 @@ function TicketDetails() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState(null);
+  
+  // NEW: Added attachments state
   const [comments, setComments] = useState([]);
+  const [attachments, setAttachments] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
+
   const [newComment, setNewComment] = useState("");
   const [commentError, setCommentError] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
@@ -32,13 +38,15 @@ function TicketDetails() {
     fetchComments();
   }, [ticketId]);
 
+  // UPDATED: Now expects { comments: [], attachments: [] }
   const fetchComments = async () => {
     try {
       const res = await fetch(`http://localhost:5000/tickets/${ticketId}/comments`);
       const data = await res.json();
-      if (Array.isArray(data)) {
+      
+      if (data.comments && Array.isArray(data.comments)) {
         setComments(
-          data.map((comment) => ({
+          data.comments.map((comment) => ({
             ...comment,
             content: comment.content || comment.text || comment.comment || "",
           }))
@@ -46,9 +54,17 @@ function TicketDetails() {
       } else {
         setComments([]);
       }
+
+      if (data.attachments && Array.isArray(data.attachments)) {
+        setAttachments(data.attachments);
+      } else {
+        setAttachments([]);
+      }
+
     } catch (err) {
       console.error(err);
       setComments([]);
+      setAttachments([]);
     }
   };
 
@@ -75,9 +91,12 @@ function TicketDetails() {
   const statusOptions = [
     { value: "OPEN", label: "Open" },
     { value: "IN_PROGRESS", label: "In Progress" },
+    { value: "WAITING_ON_CLIENT", label: "Waiting on Client" },
+    { value: "RESOLVED", label: "Resolved" },
     { value: "CLOSED", label: "Closed" },
   ];
 
+  // UPDATED: Handles both text comments and file uploads
   const handleAddComment = async (e) => {
     e.preventDefault();
     if (!ticket || !user?.id) return;
@@ -85,33 +104,47 @@ function TicketDetails() {
       setCommentError(commentRestrictionMessage || "You are not allowed to comment on this ticket.");
       return;
     }
-    if (!newComment.trim()) return;
+    if (!newComment.trim() && !selectedFile) return; // Must have either text or a file
 
     setCommentSubmitting(true);
     setCommentError("");
 
     try {
-      const res = await fetch(`http://localhost:5000/tickets/${ticketId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user?.id,
-          userId: user?.id,
-          content: newComment,
-          text: newComment,
-        }),
-      });
-
-      if (res.ok) {
-        setNewComment("");
-        fetchComments();
-      } else {
-        const data = await res.json();
-        setCommentError(data.error || "Failed to add comment");
+      // 1. Upload text comment if it exists
+      if (newComment.trim()) {
+        const res = await fetch(`http://localhost:5000/tickets/${ticketId}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user?.id,
+            content: newComment,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to add comment");
       }
+
+      // 2. Upload file if it exists
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("userId", user?.id);
+
+        const fileRes = await fetch(`http://localhost:5000/tickets/${ticketId}/attachments`, {
+          method: "POST",
+          body: formData, // No Content-Type header needed for FormData
+        });
+        if (!fileRes.ok) throw new Error("Failed to upload attachment");
+      }
+
+      // 3. Reset UI and refresh data
+      setNewComment("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = ""; // Clear file input
+      fetchComments();
+
     } catch (err) {
       console.error(err);
-      setCommentError("Failed to add comment");
+      setCommentError("Failed to add reply or upload file.");
     } finally {
       setCommentSubmitting(false);
     }
@@ -183,6 +216,33 @@ function TicketDetails() {
       setDeleteError(err.message || "Failed to delete ticket");
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleAssignToMe = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/tickets/${ticketId}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: user.id }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to claim ticket");
+      }
+
+      const updatedTicket = await res.json();
+      
+      // Update the UI immediately to unlock the comment box and status dropdown
+      setTicket((prev) => ({
+        ...prev,
+        assigned_agent_id: updatedTicket.assigned_agent_id,
+        assigned_agent_name: user.full_name || user.name,
+      }));
+      
+    } catch (err) {
+      console.error("Assignment error:", err);
+      alert("Could not assign ticket to you.");
     }
   };
 
@@ -265,7 +325,15 @@ function TicketDetails() {
                 {deleteLoading ? "Deleting…" : "Delete"}
               </button>
             )}
-            <button type="button" className="primary-button">Assign</button>
+            {userRole === "AGENT" && !isAssignedAgent && (
+              <button 
+                type="button" 
+                className="primary-button" 
+                onClick={handleAssignToMe}
+              >
+                Claim Ticket
+              </button>
+            )}
           </div>
         </header>
 
@@ -305,6 +373,53 @@ function TicketDetails() {
           </section>
         )}
 
+        {/* Attachments Display Section */}
+        {attachments.length > 0 && (
+          <section className="attachments-card">
+            <h2>Attachments</h2>
+            <div className="attachments-grid">
+              {attachments.map((file) => {
+                const isImage = file.content_type?.startsWith('image/');
+                const fileUrl = `http://localhost:5000${file.file_path}`;
+                return (
+                  <div key={file.id} className="attachment-item">
+                    {isImage ? (
+                      <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="attachment-preview">
+                        <img src={fileUrl} alt={file.file_name} />
+                      </a>
+                    ) : (
+                      <div className="attachment-icon">
+                        📄
+                      </div>
+                    )}
+                    <div className="attachment-info">
+                      <a 
+                        href={fileUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="attachment-name"
+                      >
+                        {file.file_name}
+                      </a>
+                      <span className="attachment-size">
+                        {Math.round(file.file_size / 1024)} KB
+                      </span>
+                    </div>
+                    <a 
+                      href={fileUrl} 
+                      download={file.file_name}
+                      className="attachment-download"
+                      title="Download"
+                    >
+                      ⬇
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section className="comments-thread">
           <h2>Conversation</h2>
           {Array.isArray(comments) && comments.length > 0 ? (
@@ -335,20 +450,38 @@ function TicketDetails() {
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a reply..."
-                required
                 disabled={commentSubmitting}
               />
               <div className="comment-toolbar">
                 <div className="toolbar-buttons">
-                  <button type="button" className="ghost-button" disabled={commentSubmitting}>
-                    Attach
-                  </button>
-                  <button type="button" className="ghost-button" disabled={commentSubmitting}>
-                    Insert KB
-                  </button>
+                  <label className="file-upload-btn">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={(e) => setSelectedFile(e.target.files[0])}
+                      disabled={commentSubmitting}
+                      className="file-input-hidden"
+                    />
+                    📎 Attach File
+                  </label>
+                  {selectedFile && (
+                    <div className="selected-file-badge">
+                      <span className="selected-file-name">{selectedFile.name}</span>
+                      <button 
+                        type="button" 
+                        className="remove-file-btn"
+                        onClick={() => {
+                          setSelectedFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="toolbar-actions">
-                  <button type="submit" className="primary-button" disabled={commentSubmitting}>
+                  <button type="submit" className="primary-button" disabled={commentSubmitting || (!newComment.trim() && !selectedFile)}>
                     {commentSubmitting ? "Sending…" : "Send Reply"}
                   </button>
                 </div>

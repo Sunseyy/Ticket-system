@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import "../tickets/tickets.css";
+import "./AdminAllTickets.css";
 
 const normalizeRole = (role) => (role || "").toUpperCase().trim();
 
