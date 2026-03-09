@@ -51,11 +51,26 @@
   color: #2c3e50;
 }
 
-.topbar .topbar-left h3 {
+.topbar .topbar-left,
+.topbar .topbar-right {
+  flex: 1;
+}
+
+.topbar .topbar-center {
+  flex: 2;
+  text-align: center;
+}
+
+.topbar .topbar-center h3 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
   color: #1e293b;
+}
+
+.topbar .topbar-right {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .topbar .topbar-right .logout-button {

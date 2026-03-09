@@ -3,15 +3,39 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
 
+// --- File Upload Configuration (Multer) ---
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); 
+  },
+  filename: (req, file, cb) => {
+    // Append the timestamp to prevent file name collisions
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
+// Serve uploaded files statically so the frontend can display/download them
+app.use('/uploads', express.static(uploadDir));
+// ------------------------------------------
+
 const pool = new Pool({
   user: "postgres",
-  host: "db",
+  host: "db", // Change to "localhost" if running outside of Docker
   database: "ticketing",
   password: "postgres",
   port: 5432,
@@ -32,7 +56,7 @@ const ensureAdmin = async (candidateId) => {
   }
 
   try {
-    const result = await pool.query(`SELECT id, role FROM users WHERE id = $1`, [adminId]);
+    const result = await pool.query(`SELECT id, role FROM users WHERE id = $1 AND deleted_at IS NULL`, [adminId]);
 
     if (result.rows.length === 0) {
       return { ok: false, status: 400, message: "Invalid administrator" };
@@ -60,7 +84,7 @@ const sanitizeEmail = (value, { maxLength = 255 } = {}) => {
   return value.trim().toLowerCase().slice(0, maxLength);
 };
 
-/* -------- DELETE TICKET (ADMIN ONLY) -------- */
+/* -------- DELETE TICKET (ADMIN ONLY) - SOFT DELETE -------- */
 app.delete("/tickets/:id", async (req, res) => {
   const { id } = req.params;
   const { userId } = req.body;
@@ -70,7 +94,7 @@ app.delete("/tickets/:id", async (req, res) => {
   }
 
   try {
-    const userResult = await pool.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+    const userResult = await pool.query(`SELECT role FROM users WHERE id = $1 AND deleted_at IS NULL`, [userId]);
     if (userResult.rows.length === 0) {
       return res.status(400).json({ error: "Invalid user" });
     }
@@ -82,8 +106,13 @@ app.delete("/tickets/:id", async (req, res) => {
     }
 
     await pool.query("BEGIN");
-    await pool.query(`DELETE FROM comments WHERE ticket_id = $1`, [id]);
-    const deleteResult = await pool.query(`DELETE FROM tickets WHERE id = $1 RETURNING id`, [id]);
+    
+    // Soft delete associated comments and attachments
+    await pool.query(`UPDATE comments SET deleted_at = NOW() WHERE ticket_id = $1`, [id]);
+    await pool.query(`UPDATE attachments SET deleted_at = NOW() WHERE ticket_id = $1`, [id]);
+    
+    // Soft delete the ticket
+    const deleteResult = await pool.query(`UPDATE tickets SET deleted_at = NOW() WHERE id = $1 RETURNING id`, [id]);
 
     if (deleteResult.rows.length === 0) {
       await pool.query("ROLLBACK");
@@ -101,23 +130,19 @@ app.delete("/tickets/:id", async (req, res) => {
 
 /* -------- SOCIETIES -------- */
 app.get("/societies", async (req, res) => {
-  console.log("Query received:", req.query);
   const { type } = req.query;
 
   try {
     const result = await pool.query(
-      "SELECT id, name FROM societies WHERE LOWER(type) = LOWER($1)",
+      "SELECT id, name FROM societies WHERE LOWER(type) = LOWER($1) AND deleted_at IS NULL",
       [type]
     );
-    console.log("DB result:", result.rows);
     res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });
   }
 });
-
-
 
 /* -------- REGISTER -------- */
 app.post("/register", async (req, res) => {
@@ -139,14 +164,14 @@ app.post("/register", async (req, res) => {
     res.status(400).json({ error: "User exists or bad data" });
   }
 });
+
 /* LOG IN  */
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // 1. Find user by email
     const result = await pool.query(
-      "SELECT id, full_name, email, password_hash, role, society_id FROM users WHERE email = $1",
+      "SELECT id, full_name, email, password_hash, role, society_id FROM users WHERE email = $1 AND deleted_at IS NULL",
       [email]
     );
 
@@ -156,13 +181,11 @@ app.post("/login", async (req, res) => {
 
     const user = result.rows[0];
 
-    // 2. Compare password
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(400).json({ error: "Invalid email or password" });
     }
 
-    // 3. Return user info (exclude password hash)
     const { password_hash, ...userData } = user;
     res.json(userData);
 
@@ -171,22 +194,13 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 /* -------- CREATE TICKET -------- */
 app.post("/tickets", async (req, res) => {
   const {
-    title,
-    description,
-    product,
-    category,
-    department,
-    priority,
-    urgency,
-    userId,
-    userRole,
-    userSocietyId
+    title, description, product, category, department, priority, urgency, userId, userRole, userSocietyId
   } = req.body;
 
-  // 1. Validate role
   if (!["CLIENT", "AGENT"].includes(userRole)) {
     return res.status(403).json({ error: "Unauthorized role" });
   }
@@ -196,18 +210,11 @@ app.post("/tickets", async (req, res) => {
       `
       INSERT INTO tickets
       (title, description, product, category, department, priority, urgency, status, created_by, society_id)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,'OPEN',$8,$9)
+      VALUES ($1,$2,$3,$4,$5,UPPER($6)::ticket_priority,$7,'OPEN',$8,$9)
       RETURNING *
       `,
       [
-        title,
-        description,
-        product,
-        category,
-        department,
-        priority,
-        urgency || null,
-        userId,
+        title, description, product, category, department, priority, urgency || null, userId,
         userRole === "CLIENT" ? userSocietyId : null
       ]
     );
@@ -219,7 +226,6 @@ app.post("/tickets", async (req, res) => {
   }
 });
 
-
 /* -------- GET TICKETS (filtered by role/user) -------- */
 app.get("/tickets", async (req, res) => {
   const { userId, role } = req.query;
@@ -228,78 +234,43 @@ app.get("/tickets", async (req, res) => {
     let result;
 
     if (role && role.toUpperCase() === "CLIENT") {
-      // Return tickets created by this client
       result = await pool.query(
         `
         SELECT
-          t.id,
-          t.title,
-          t.description,
-          t.product,
-          t.category,
-          t.department,
-          t.priority,
-          t.urgency,
-          t.status,
-          t.created_at,
-          t.updated_at,
-          u.full_name AS created_by_name,
-          a.full_name AS assigned_agent_name
+          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+          u.full_name AS created_by_name, a.full_name AS assigned_agent_name
         FROM tickets t
         JOIN users u ON t.created_by = u.id
         LEFT JOIN users a ON t.assigned_agent_id = a.id
-        WHERE t.created_by = $1
+        WHERE t.created_by = $1 AND t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         `,
         [userId]
       );
     } else if (role && role.toUpperCase() === "AGENT") {
-      // Return tickets assigned to this agent or unassigned (agent view)
       result = await pool.query(
         `
         SELECT
-          t.id,
-          t.title,
-          t.description,
-          t.product,
-          t.category,
-          t.department,
-          t.priority,
-          t.urgency,
-          t.status,
-          t.created_at,
-          t.updated_at,
-          u.full_name AS created_by_name,
-          a.full_name AS assigned_agent_name
+          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+          u.full_name AS created_by_name, a.full_name AS assigned_agent_name
         FROM tickets t
         JOIN users u ON t.created_by = u.id
         LEFT JOIN users a ON t.assigned_agent_id = a.id
-        WHERE t.assigned_agent_id = $1 OR t.assigned_agent_id IS NULL
+        WHERE (t.assigned_agent_id = $1 OR t.assigned_agent_id IS NULL) AND t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         `,
         [userId]
       );
     } else {
-      // Admin or general listing - return recent tickets
       result = await pool.query(
         `
         SELECT
-          t.id,
-          t.title,
-          t.description,
-          t.product,
-          t.category,
-          t.department,
-          t.priority,
-          t.urgency,
-          t.status,
-          t.created_at,
-          t.updated_at,
-          u.full_name AS created_by_name,
-          a.full_name AS assigned_agent_name
+          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+          u.full_name AS created_by_name, a.full_name AS assigned_agent_name
         FROM tickets t
         JOIN users u ON t.created_by = u.id
         LEFT JOIN users a ON t.assigned_agent_id = a.id
+        WHERE t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         LIMIT 50
         `
@@ -313,24 +284,18 @@ app.get("/tickets", async (req, res) => {
   }
 });
 
-
 /* -------- GET LATEST TICKETS (ADMIN / AGENT) -------- */
 app.get("/tickets/latest", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        t.id,
-        t.title,
-        t.status,
-        t.priority,
-        t.created_at,
-
+        t.id, t.title, t.status, t.priority, t.created_at,
         u.full_name AS created_by_name,
         a.full_name AS assigned_agent_name
-
       FROM tickets t
       JOIN users u ON t.created_by = u.id
       LEFT JOIN users a ON t.assigned_agent_id = a.id
+      WHERE t.deleted_at IS NULL
       ORDER BY t.created_at DESC
       LIMIT 5
     `);
@@ -346,7 +311,7 @@ app.get("/tickets/latest", async (req, res) => {
 app.get("/agents", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, full_name FROM users WHERE role = 'AGENT'"
+      "SELECT id, full_name FROM users WHERE role = 'AGENT' AND deleted_at IS NULL"
     );
     res.json(result.rows);
   } catch (err) {
@@ -354,7 +319,6 @@ app.get("/agents", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch agents" });
   }
 });
-
 
 /* -------- ASSIGN TICKET -------- */
 app.put("/tickets/:id/assign", async (req, res) => {
@@ -365,9 +329,8 @@ app.put("/tickets/:id/assign", async (req, res) => {
     const result = await pool.query(
       `
       UPDATE tickets
-      SET assigned_agent_id = $1,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
+      SET assigned_agent_id = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND deleted_at IS NULL
       RETURNING *
       `,
       [agentId, id]
@@ -386,7 +349,7 @@ app.put("/tickets/:id/status", async (req, res) => {
   const { userId, status } = req.body;
 
   const normalizedStatus = typeof status === "string" ? status.toUpperCase().trim() : "";
-  const allowedStatuses = new Set(["OPEN", "IN_PROGRESS", "CLOSED"]);
+  const allowedStatuses = new Set(["OPEN", "IN_PROGRESS", "WAITING_ON_CLIENT", "RESOLVED", "CLOSED"]);
 
   if (!Number.isInteger(Number(userId))) {
     return res.status(400).json({ error: "Valid userId is required" });
@@ -398,7 +361,7 @@ app.put("/tickets/:id/status", async (req, res) => {
 
   try {
     const ticketResult = await pool.query(
-      `SELECT assigned_agent_id FROM tickets WHERE id = $1`,
+      `SELECT assigned_agent_id FROM tickets WHERE id = $1 AND deleted_at IS NULL`,
       [id]
     );
 
@@ -408,7 +371,7 @@ app.put("/tickets/:id/status", async (req, res) => {
 
     const assignedAgentId = ticketResult.rows[0].assigned_agent_id;
 
-    const userResult = await pool.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+    const userResult = await pool.query(`SELECT role FROM users WHERE id = $1 AND deleted_at IS NULL`, [userId]);
     if (userResult.rows.length === 0) {
       return res.status(400).json({ error: "Invalid user" });
     }
@@ -416,23 +379,18 @@ app.put("/tickets/:id/status", async (req, res) => {
     const role = (userResult.rows[0].role || "").toUpperCase().trim();
 
     if (role === "AGENT" && assignedAgentId !== Number(userId)) {
-      return res
-        .status(403)
-        .json({ error: "Only the assigned agent can update this ticket" });
+      return res.status(403).json({ error: "Only the assigned agent can update this ticket" });
     }
 
     if (role !== "AGENT" && role !== "ADMIN") {
-      return res
-        .status(403)
-        .json({ error: "Only assigned agents or admins can update status" });
+      return res.status(403).json({ error: "Only assigned agents or admins can update status" });
     }
 
     const updateResult = await pool.query(
       `
       UPDATE tickets
-      SET status = $1,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
+      SET status = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND deleted_at IS NULL
       RETURNING id, status, updated_at
       `,
       [normalizedStatus, id]
@@ -453,22 +411,12 @@ app.get("/tickets/:id", async (req, res) => {
     const result = await pool.query(
       `
       SELECT
-        t.id,
-        t.title,
-        t.description,
-        t.status,
-        t.priority,
-        t.urgency,
-        t.created_at,
-        t.updated_at,
-        t.created_by,
-        t.assigned_agent_id,
-        u.full_name AS created_by_name,
-        a.full_name AS assigned_agent_name
+        t.id, t.title, t.description, t.status, t.priority, t.urgency, t.created_at, t.updated_at, t.created_by, t.assigned_agent_id,
+        u.full_name AS created_by_name, a.full_name AS assigned_agent_name
       FROM tickets t
       JOIN users u ON t.created_by = u.id
       LEFT JOIN users a ON t.assigned_agent_id = a.id
-      WHERE t.id = $1
+      WHERE t.id = $1 AND t.deleted_at IS NULL
       `,
       [id]
     );
@@ -484,45 +432,53 @@ app.get("/tickets/:id", async (req, res) => {
   }
 });
 
-/// Get all comments for a ticket
+/* -------- GET TICKET COMMENTS & ATTACHMENTS -------- */
 app.get("/tickets/:id/comments", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const result = await pool.query(
+    // We can fetch comments and simple attachments related to the ticket here
+    const commentsResult = await pool.query(
       `
       SELECT 
-        c.id, 
-        c.content AS text, 
-        c.created_at, 
+        c.id, c.content AS text, c.created_at, 
         u.full_name AS author_name
       FROM comments c
       JOIN users u ON c.user_id = u.id
-      WHERE c.ticket_id = $1
+      WHERE c.ticket_id = $1 AND c.deleted_at IS NULL
       ORDER BY c.created_at ASC
       `,
       [id]
     );
 
-    res.json(result.rows);
+    const attachmentsResult = await pool.query(
+      `
+      SELECT id, file_name, file_path, file_size, content_type, created_at 
+      FROM attachments 
+      WHERE ticket_id = $1 AND deleted_at IS NULL
+      ORDER BY created_at ASC
+      `,
+      [id]
+    );
+
+    res.json({
+      comments: commentsResult.rows,
+      attachments: attachmentsResult.rows
+    });
   } catch (err) {
-    console.error("Error fetching comments:", err);
-    res.status(500).json({ error: "Failed to fetch comments" });
+    console.error("Error fetching comments/attachments:", err);
+    res.status(500).json({ error: "Failed to fetch comments and attachments" });
   }
 });
 
-/// Add a comment to a ticket
+/* -------- ADD COMMENT -------- */
 app.post("/tickets/:id/comments", async (req, res) => {
   const { id } = req.params;
   const rawUserId = req.body.userId ?? req.body.user_id;
   const rawContent =
-    typeof req.body.content === "string"
-      ? req.body.content
-      : typeof req.body.text === "string"
-      ? req.body.text
-      : typeof req.body.comment === "string"
-      ? req.body.comment
-      : "";
+    typeof req.body.content === "string" ? req.body.content :
+    typeof req.body.text === "string" ? req.body.text :
+    typeof req.body.comment === "string" ? req.body.comment : "";
 
   const userId = Number(rawUserId);
   const content = rawContent.trim();
@@ -536,7 +492,7 @@ app.post("/tickets/:id/comments", async (req, res) => {
   }
 
   try {
-    const userResult = await pool.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+    const userResult = await pool.query(`SELECT role FROM users WHERE id = $1 AND deleted_at IS NULL`, [userId]);
     if (userResult.rows.length === 0) {
       return res.status(400).json({ error: "Invalid user" });
     }
@@ -544,7 +500,7 @@ app.post("/tickets/:id/comments", async (req, res) => {
     const role = (userResult.rows[0].role || "").toUpperCase().trim();
 
     const ticketResult = await pool.query(
-      `SELECT assigned_agent_id, created_by FROM tickets WHERE id = $1`,
+      `SELECT assigned_agent_id, created_by FROM tickets WHERE id = $1 AND deleted_at IS NULL`,
       [id]
     );
 
@@ -559,15 +515,11 @@ app.post("/tickets/:id/comments", async (req, res) => {
     }
 
     if (role === "AGENT" && assignedAgentId !== userId) {
-      return res
-        .status(403)
-        .json({ error: "Only the assigned agent can comment on this ticket" });
+      return res.status(403).json({ error: "Only the assigned agent can comment on this ticket" });
     }
 
     if (role === "CLIENT" && createdBy !== userId) {
-      return res
-        .status(403)
-        .json({ error: "Clients can only comment on their own tickets" });
+      return res.status(403).json({ error: "Clients can only comment on their own tickets" });
     }
 
     const result = await pool.query(
@@ -586,6 +538,40 @@ app.post("/tickets/:id/comments", async (req, res) => {
   }
 });
 
+/* -------- UPLOAD ATTACHMENT -------- */
+app.post("/tickets/:id/attachments", upload.single("file"), async (req, res) => {
+  const { id } = req.params;
+  const rawUserId = req.body.userId ?? req.body.user_id;
+  const userId = Number(rawUserId);
+  const file = req.file;
+
+  if (!Number.isInteger(userId)) {
+    if (file) fs.unlinkSync(file.path); 
+    return res.status(400).json({ error: "Valid userId is required" });
+  }
+
+  if (!file) {
+    return res.status(400).json({ error: "No file provided" });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+      INSERT INTO attachments (ticket_id, uploaded_by, file_name, file_path, file_size, content_type)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+      `,
+      [id, userId, file.originalname, `/uploads/${file.filename}`, file.size, file.mimetype]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error uploading attachment:", err);
+    if (file) fs.unlinkSync(file.path);
+    res.status(500).json({ error: "Failed to upload attachment" });
+  }
+});
+
 /* -------- ADMIN: LIST USERS -------- */
 app.get("/users", async (req, res) => {
   const { adminId } = req.query;
@@ -598,12 +584,7 @@ app.get("/users", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
-        u.id,
-        u.full_name,
-        u.email,
-        u.role,
-        u.society_id,
-        u.created_at,
+        u.id, u.full_name, u.email, u.role, u.society_id, u.created_at,
         COALESCE(created_stats.total_created, 0)        AS created_total,
         COALESCE(created_stats.open_created, 0)         AS created_open,
         COALESCE(created_stats.in_progress_created, 0)  AS created_in_progress,
@@ -620,7 +601,7 @@ app.get("/users", async (req, res) => {
           COUNT(*) FILTER (WHERE status = 'IN_PROGRESS')     AS in_progress_created,
           COUNT(*) FILTER (WHERE status = 'CLOSED')          AS closed_created
         FROM tickets
-        WHERE created_by = u.id
+        WHERE created_by = u.id AND deleted_at IS NULL
       ) created_stats ON TRUE
       LEFT JOIN LATERAL (
         SELECT
@@ -629,8 +610,9 @@ app.get("/users", async (req, res) => {
           COUNT(*) FILTER (WHERE status = 'IN_PROGRESS')     AS in_progress_assigned,
           COUNT(*) FILTER (WHERE status = 'CLOSED')          AS closed_assigned
         FROM tickets
-        WHERE assigned_agent_id = u.id
+        WHERE assigned_agent_id = u.id AND deleted_at IS NULL
       ) assigned_stats ON TRUE
+      WHERE u.deleted_at IS NULL
       ORDER BY u.created_at DESC
       LIMIT 500
     `);
@@ -661,23 +643,12 @@ app.get("/users/:id/tickets", async (req, res) => {
     const createdResult = await pool.query(
       `
       SELECT
-        t.id,
-        t.title,
-        t.description,
-        t.product,
-        t.category,
-        t.department,
-        t.priority,
-        t.urgency,
-        t.status,
-        t.created_at,
-        t.updated_at,
-        u.full_name AS created_by_name,
-        a.full_name AS assigned_agent_name
+        t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+        u.full_name AS created_by_name, a.full_name AS assigned_agent_name
       FROM tickets t
       JOIN users u ON t.created_by = u.id
       LEFT JOIN users a ON t.assigned_agent_id = a.id
-      WHERE t.created_by = $1
+      WHERE t.created_by = $1 AND t.deleted_at IS NULL
       ORDER BY t.created_at DESC
       LIMIT 100
       `,
@@ -687,23 +658,12 @@ app.get("/users/:id/tickets", async (req, res) => {
     const assignedResult = await pool.query(
       `
       SELECT
-        t.id,
-        t.title,
-        t.description,
-        t.product,
-        t.category,
-        t.department,
-        t.priority,
-        t.urgency,
-        t.status,
-        t.created_at,
-        t.updated_at,
-        u.full_name AS created_by_name,
-        a.full_name AS assigned_agent_name
+        t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+        u.full_name AS created_by_name, a.full_name AS assigned_agent_name
       FROM tickets t
       JOIN users u ON t.created_by = u.id
       LEFT JOIN users a ON t.assigned_agent_id = a.id
-      WHERE t.assigned_agent_id = $1
+      WHERE t.assigned_agent_id = $1 AND t.deleted_at IS NULL
       ORDER BY t.updated_at DESC
       LIMIT 100
       `,
@@ -717,7 +677,7 @@ app.get("/users/:id/tickets", async (req, res) => {
   }
 });
 
-/* -------- ADMIN: DELETE USER -------- */
+/* -------- ADMIN: DELETE USER - SOFT DELETE -------- */
 app.delete("/users/:id", async (req, res) => {
   const { id } = req.params;
   const { adminId } = req.body || {};
@@ -740,15 +700,10 @@ app.delete("/users/:id", async (req, res) => {
     await pool.query("BEGIN");
 
     await pool.query(`UPDATE tickets SET assigned_agent_id = NULL WHERE assigned_agent_id = $1`, [targetId]);
-    await pool.query(`DELETE FROM comments WHERE user_id = $1`, [targetId]);
-    await pool.query(
-      `DELETE FROM comments
-       WHERE ticket_id IN (SELECT id FROM tickets WHERE created_by = $1)`,
-      [targetId]
-    );
-    await pool.query(`DELETE FROM tickets WHERE created_by = $1`, [targetId]);
+    await pool.query(`UPDATE comments SET deleted_at = NOW() WHERE user_id = $1`, [targetId]);
+    await pool.query(`UPDATE tickets SET deleted_at = NOW() WHERE created_by = $1`, [targetId]);
 
-    const deleteResult = await pool.query(`DELETE FROM users WHERE id = $1 RETURNING id`, [targetId]);
+    const deleteResult = await pool.query(`UPDATE users SET deleted_at = NOW() WHERE id = $1 RETURNING id`, [targetId]);
 
     if (deleteResult.rows.length === 0) {
       await pool.query("ROLLBACK");
@@ -756,7 +711,7 @@ app.delete("/users/:id", async (req, res) => {
     }
 
     await pool.query("COMMIT");
-    res.json({ message: "User deleted" });
+    res.json({ message: "User soft-deleted" });
   } catch (err) {
     await pool.query("ROLLBACK");
     console.error("Admin delete user error:", err);
@@ -778,6 +733,7 @@ app.get("/companies", async (req, res) => {
       `
       SELECT id, name, type, contact_email, created_at, updated_at
       FROM societies
+      WHERE deleted_at IS NULL
       ORDER BY created_at DESC
       LIMIT 200
       `
@@ -830,6 +786,7 @@ app.post("/companies", async (req, res) => {
   }
 });
 
+/* -------- ADMIN: DELETE COMPANY - SOFT DELETE -------- */
 app.delete("/companies/:id", async (req, res) => {
   const { id } = req.params;
   const { adminId } = req.body || {};
@@ -846,7 +803,7 @@ app.delete("/companies/:id", async (req, res) => {
 
   try {
     const ticketsResult = await pool.query(
-      `SELECT COUNT(*) AS ticket_count FROM tickets WHERE society_id = $1`,
+      `SELECT COUNT(*) AS ticket_count FROM tickets WHERE society_id = $1 AND deleted_at IS NULL`,
       [companyId]
     );
 
@@ -856,7 +813,7 @@ app.delete("/companies/:id", async (req, res) => {
     }
 
     const deleteResult = await pool.query(
-      `DELETE FROM societies WHERE id = $1 RETURNING id`,
+      `UPDATE societies SET deleted_at = NOW() WHERE id = $1 RETURNING id`,
       [companyId]
     );
 
@@ -864,16 +821,13 @@ app.delete("/companies/:id", async (req, res) => {
       return res.status(404).json({ error: "Company not found" });
     }
 
-    res.json({ message: "Company deleted" });
+    res.json({ message: "Company soft-deleted" });
   } catch (err) {
     console.error("Admin delete company error:", err);
     res.status(500).json({ error: "Failed to delete company" });
   }
 });
 
-
-
 app.listen(5000, () =>
   console.log("Backend running on http://localhost:5000")
 );
-
