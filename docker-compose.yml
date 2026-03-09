@@ -23,9 +23,10 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./database.sql:/docker-entrypoint-initdb.d/init.sql
 
   backend:
-    build: ./backend          # build from your Dockerfile
+    build: ./backend          # build from Dockerfile
     container_name: ticketing-backend
     working_dir: /app
     volumes:
