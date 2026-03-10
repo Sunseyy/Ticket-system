@@ -22,23 +22,16 @@ LABEL maintainer="TnD Support Team"
 LABEL description="Ticketing System Backend API"
 LABEL version="1.0.0"
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
 WORKDIR /app
 
 # Copy node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy application files
-COPY --chown=nodejs:nodejs . .
+COPY . .
 
-# Create uploads directory with proper permissions
-RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app/uploads
-
-# Switch to non-root user
-USER nodejs
+# Create uploads directory
+RUN mkdir -p /app/uploads
 
 # Set environment defaults (can be overridden at runtime)
 ENV NODE_ENV=production

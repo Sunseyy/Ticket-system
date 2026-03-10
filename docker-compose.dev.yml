@@ -1,13 +1,24 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Docker Compose - Development Override
 # ─────────────────────────────────────────────────────────────────────────────
-# Use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-# This enables hot-reload for frontend development
+# Use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# This enables hot-reload for both frontend and backend development
 # ─────────────────────────────────────────────────────────────────────────────
 
 version: "3.8"
 
 services:
+  # Override backend for development with hot reload
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - uploads-data:/app/uploads
+    command: sh -c "npm install && npm start"
+
   # Override frontend to use Vite dev server instead of Nginx
   frontend:
     build:
