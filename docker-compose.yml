@@ -55,7 +55,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       
       # CORS Configuration (comma-separated origins)
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:80,http://localhost:5173,http://localhost}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:80,http://localhost:5173,http://localhost}
       
       # File Upload Configuration
       UPLOAD_DIR: /app/uploads
