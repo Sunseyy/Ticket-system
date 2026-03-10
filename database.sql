@@ -3,7 +3,6 @@
 
 -- Unified PostgreSQL Database Schema & Seed Data (Formatting-Proof Version)
 -- 
->>>>>>> 2c5f9d6f1556c021406bb76049771939f958e08f
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -11,15 +10,12 @@ SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 
-=======
 SET search_path = public;
->>>>>>> 2c5f9d6f1556c021406bb76049771939f958e08f
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-=======
 SET default_tablespace = '';
 SET default_table_access_method = heap;
 
@@ -40,14 +36,12 @@ $$ language 'plpgsql';
 -- 3. Table Definitions
 CREATE TABLE public.societies (
     id SERIAL PRIMARY KEY,
->>>>>>> 2c5f9d6f1556c021406bb76049771939f958e08f
     name character varying(255) NOT NULL,
     type character varying(50) NOT NULL,
     contact_email character varying(255),
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
 
-=======
     deleted_at timestamp without time zone,
     CONSTRAINT societies_type_check CHECK (((type)::text = ANY ((ARRAY['client'::character varying, 'tech'::character varying])::text[])))
 );
@@ -66,14 +60,12 @@ CREATE TABLE public.users (
 
 CREATE TABLE public.tickets (
     id SERIAL PRIMARY KEY,
->>>>>>> 2c5f9d6f1556c021406bb76049771939f958e08f
     title text NOT NULL,
     description text NOT NULL,
     product character varying(100) NOT NULL,
     category character varying(100) NOT NULL,
     department character varying(100) NOT NULL,
 
-=======
     priority ticket_priority DEFAULT 'MEDIUM'::ticket_priority NOT NULL,
     urgency character varying(20),
     status ticket_status DEFAULT 'OPEN'::ticket_status NOT NULL,
@@ -155,4 +147,3 @@ CREATE INDEX idx_tickets_assigned_agent ON public.tickets(assigned_agent_id);
 CREATE INDEX idx_tickets_society_id ON public.tickets(society_id);
 CREATE INDEX idx_comments_ticket_id ON public.comments(ticket_id);
 CREATE INDEX idx_attachments_ticket_id ON public.attachments(ticket_id);
->>>>>>> 2c5f9d6f1556c021406bb76049771939f958e08f

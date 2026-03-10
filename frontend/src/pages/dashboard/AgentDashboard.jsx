@@ -3,6 +3,7 @@ import MainLayout from "../../layout/MainLayout";
 import "./AgentDashboard.css";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../config/api";
 
 const normalizeStatus = (status) => {
   return (status || "")
@@ -79,7 +80,7 @@ function AgentDashboard() {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/tickets?userId=${encodeURIComponent(user.id)}&role=${encodeURIComponent(user.role)}`,
+          `${API_URL}/tickets?userId=${encodeURIComponent(user.id)}&role=${encodeURIComponent(user.role)}`,
           { signal }
         );
 
