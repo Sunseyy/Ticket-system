@@ -37,6 +37,12 @@ RUN mkdir -p /app/uploads
 ENV NODE_ENV=production
 ENV PORT=5000
 
+# Change ownership of the app directory to the built-in node user
+RUN chown -R node:node /app
+
+# Switch to the non-root user
+USER node
+
 # Expose the port
 EXPOSE 5000
 
