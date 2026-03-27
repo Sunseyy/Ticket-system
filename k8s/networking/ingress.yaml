@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: ticketing
+  annotations:
+    # CORS headers pour accepter les requêtes depuis le frontend
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://192-168-211-128.nip.io, https://192-168-211-128.nip.io"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "Content-Type"
+    # Rewrite du path: enlever le prefix /api avant d'envoyer au backend
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # Timeouts pour les requêtes longues
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "192-168-211-128.nip.io"
+    http:
+      paths:
+      # Route 1: Toutes les requêtes /api vers le BACKEND (rewrite enlève /api)
+      - path: /api(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 5000
+      
+      # Route 2: Uploads statiques depuis le backend (si nécessaire)
+      - path: /uploads
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 5000
+      
+      # Route 3: Tout le reste vers le FRONTEND (SPA routing)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80

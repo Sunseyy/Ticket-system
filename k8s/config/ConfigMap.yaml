@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticket-config
+  namespace: ticketing
+data:
+  # VARIABLES POUR POSTGRESQL (au démarrage du conteneur)
+  POSTGRES_DB: "ticketing"      # OBLIGATOIRE : crée la base automatiquement
+  POSTGRES_HOST: "postgres"     # (nom du service Kubernetes)
+  POSTGRES_PORT: "5432"         
+
+  # VARIABLES POUR (backend)
+  DB_HOST: postgres   
+  DB_NAME: ticketing  
+  DB_PORT: "5432"
+  NODE_ENV: production
+
+
+  # CORS Origins - doit inclure le domaine du frontend via l'Ingress
+  # Format: protocol://host:port (séparé par des virgules, sans espaces)
+  CORS_ORIGINS: "http://192-168-211-128.nip.io:31138,https://192-168-211-128.nip.io:31138,http://192-168-211-128.nip.io,https://192-168-211-128.nip.io,http://localhost:5173,http://localhost:80,http://localhost"

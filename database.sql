@@ -1,4 +1,6 @@
 --
+
+
 -- Unified PostgreSQL Database Schema & Seed Data (Formatting-Proof Version)
 -- 
 
@@ -7,11 +9,13 @@ SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
+
 SET search_path = public;
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
 SET default_tablespace = '';
 SET default_table_access_method = heap;
 
@@ -37,6 +41,7 @@ CREATE TABLE public.societies (
     contact_email character varying(255),
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
+
     deleted_at timestamp without time zone,
     CONSTRAINT societies_type_check CHECK (((type)::text = ANY ((ARRAY['client'::character varying, 'tech'::character varying])::text[])))
 );
@@ -60,6 +65,7 @@ CREATE TABLE public.tickets (
     product character varying(100) NOT NULL,
     category character varying(100) NOT NULL,
     department character varying(100) NOT NULL,
+
     priority ticket_priority DEFAULT 'MEDIUM'::ticket_priority NOT NULL,
     urgency character varying(20),
     status ticket_status DEFAULT 'OPEN'::ticket_status NOT NULL,

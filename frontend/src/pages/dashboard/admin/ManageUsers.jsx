@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { API_URL } from "../../../config/api";
 import "./ManageUsers.css";
 
 const normalizeRoleValue = (role) => (role || "").toUpperCase().trim();
@@ -94,7 +95,7 @@ function ManageUsers() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/users?adminId=${encodeURIComponent(adminId)}`
+        `${API_URL}/users?adminId=${encodeURIComponent(adminId)}`
       );
 
       if (!response.ok) {
@@ -122,7 +123,7 @@ function ManageUsers() {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/users/${encodeURIComponent(
+          `${API_URL}/users/${encodeURIComponent(
             targetUser.id
           )}/tickets?adminId=${encodeURIComponent(adminId)}`
         );
@@ -236,7 +237,7 @@ function ManageUsers() {
     setDeletingId(targetUser.id);
 
     try {
-      const response = await fetch(`http://localhost:5000/users/${targetUser.id}`, {
+      const response = await fetch(`${API_URL}/users/${targetUser.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adminId }),

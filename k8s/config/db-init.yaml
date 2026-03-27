@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-init-scripts1
+  namespace: ticketing
+data:
+  init.sql: ../../database.sql

@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Docker Compose - Development Override
+# ─────────────────────────────────────────────────────────────────────────────
+# Use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# This enables hot-reload for both frontend and backend development
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: "3.8"
+
+services:
+  # Override backend for development with hot reload
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - uploads-data:/app/uploads
+    command: sh -c "npm install && npm start"
+
+  # Override frontend to use Vite dev server instead of Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: ticketing-frontend-dev
+    environment:
+      VITE_API_URL: http://localhost:5000
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+    command: npm run dev -- --host 0.0.0.0
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

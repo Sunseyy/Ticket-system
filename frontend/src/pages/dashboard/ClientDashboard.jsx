@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import MainLayout from "../../layout/MainLayout";
 import "./ClientDashboard.css";
 import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../config/api";
 
 const formatStatus = (status) => {
   if (!status) return "Unknown";
@@ -56,7 +57,7 @@ export default function ClientDashboard() {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/tickets?userId=${encodeURIComponent(user.id)}&role=${encodeURIComponent(user.role)}`,
+          `${API_URL}/tickets?userId=${encodeURIComponent(user.id)}&role=${encodeURIComponent(user.role)}`,
           { signal }
         );
 

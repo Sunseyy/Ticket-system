@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: backend
+ namespace: ticketing
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   app: backend
+ template:
+  metadata:
+   labels:
+    app: backend
+  spec:
+   containers:
+    - name: backend
+      image: sunseyy/ticketing-backend:latest
+      env: 
+      - name: CORS_ORIGINS
+        value: "http://192-168-211-128.nip.io:31138,https://192-168-211-128.nip.io:31138" 
+      ports: 
+       - containerPort: 5000
+      envFrom:
+       - configMapRef:
+          name: ticket-config
+       - secretRef: 
+          name: db-secret
+      volumeMounts:
+       - name: uploads
+         mountPath: /app/uploads      
+   volumes:  
+    - name : uploads
+      persistentVolumeClaim: 
+       claimName: uploads-pvc   
+
+
+       

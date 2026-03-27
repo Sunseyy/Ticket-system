@@ -1,0 +1,72 @@
+Etape 01:
+Cette étape est nécessaire pour permettre la création automatique des PersistentVolumeClaims dans un cluster Kubernetes local (sans cloud provider).
+--------------------------------------------------------------------------------------------------------------------------------
+# Installation de storageclass local-path
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+
+# Verification des storageclass existant
+kubectl get sc
+
+# Retirer le statut "par défaut" de l'ancien StorageClass 
+kubectl patch storageclass <nom-ancien-sc> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+
+#  Définir local-path comme StorageClass par défaut
+kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+# Verification
+kubectl get sc
+--------------------------------------------------------------------------------------------------------------------------------
+
+Etape 02:
+--------------------------------------------------------------------------------------------------------------------------------
+# Installation ingress-ngnix
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/baremetal/deploy.yaml
+
+# Verification 
+kubectl get pods -n ingress-nginx
+--------------------------------------------------------------------------------------------------------------------------------
+
+Etape 03:
+--------------------------------------------------------------------------------------------------------------------------------
+# Récupérer l'IP interne du node
+kubectl get nodes -o wide
+
+# Récupérer le NodePort exposé par l'Ingress
+kubectl get svc -n ingress-nginx
+--------------------------------------------------------------------------------------------------------------------------------
+
+Etape 04:
+--------------------------------------------------------------------------------------------------------------------------------
+# Modification k8s/config/ConfigMap.yaml: 
+  CORS_ORIGINS: "http://192-168-211-128.nip.io:31138,https://192-168-211-128.nip.io:31138,http://192-168-211-128.nip.io,https://192-168-211-128.nip.io,http://localhost:5173,http://localhost:80,http://localhost"
+  # Ajoute la http:<InternalIP>.nip.io:<NodePort> 
+
+# Modification k8s/networking/ingress.yaml:
+  nginx.ingress.kubernetes.io/cors-allow-origin: "http://192-168-211-128.nip.io, https://192-168-211-128.nip.io"
+  # Ajoute la http:<InternalIP>.nip.io:<NodePort>
+
+  - host: "192-168-211-128.nip.io"
+  # Remplace la par ton <InternalIP>.nip.io
+# Modification k8s/backend/deployment.yaml 
+  env: 
+      - name: CORS_ORIGINS
+        value: "http://192-168-211-128.nip.io:31138,https://192-168-211-128.nip.io:31138"
+  # Ajoute la http:<InternalIP>.nip.io:<NodePort>
+
+  192.168.211.128 ==> 192-168-211-128
+--------------------------------------------------------------------------------------------------------------------------------
+
+Etape 05: 
+--------------------------------------------------------------------------------------------------------------------------------
+# Executer le script
+./deploy.sh
+
+# Verification
+kubectl get all -n ticketing
+--------------------------------------------------------------------------------------------------------------------------------
+
+Etape 06: 
+--------------------------------------------------------------------------------------------------------------------------------
+# Acces a l'app 
+http:<InternalIP>.nip.io:<NodePort>
+--------------------------------------------------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { API_URL } from "../../../config/api";
 import "./AdminAllTickets.css";
 
 const normalizeRole = (role) => (role || "").toUpperCase().trim();
@@ -198,7 +199,7 @@ function AdminAllTickets() {
     setFeedback({ type: "", message: "" });
 
     try {
-      const response = await fetch(`http://localhost:5000/tickets/${ticketId}/assign`, {
+      const response = await fetch(`${API_URL}/tickets/${ticketId}/assign`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agentId: numericAgentId }),
@@ -240,7 +241,7 @@ function AdminAllTickets() {
     setFeedback({ type: "", message: "" });
 
     try {
-      const response = await fetch(`http://localhost:5000/tickets/${ticketId}`, {
+      const response = await fetch(`${API_URL}/tickets/${ticketId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id }),

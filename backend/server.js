@@ -7,38 +7,103 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURATION FROM ENVIRONMENT VARIABLES
+// ─────────────────────────────────────────────────────────────────────────────
+const config = {
+  // Server
+  port: parseInt(process.env.PORT, 10) || 5000,
+  nodeEnv: process.env.NODE_ENV || "development",
+  
+  // CORS - comma-separated list of allowed origins
+  corsOrigins: process.env.CORS_ORIGINS 
+    ? process.env.CORS_ORIGINS.split(",").map(origin => origin.trim())
+    : ["http://localhost:5173", "http://localhost:80", "http://localhost"],
+  
+  // Database
+  db: {
+    host: process.env.DB_HOST || "localhost",
+    port: parseInt(process.env.DB_PORT, 10) || 5432,
+    database: process.env.DB_NAME || "ticketing",
+    user: process.env.DB_USER || "postgres",
+    password: process.env.DB_PASSWORD || "postgres",
+  },
+  
+  // File uploads
+  uploadDir: process.env.UPLOAD_DIR || path.join(__dirname, "uploads"),
+  maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10 * 1024 * 1024, // 10MB default
+};
+
+// Log configuration on startup (hide sensitive data)
+console.log("🚀 Server Configuration:");
+console.log(`   Environment: ${config.nodeEnv}`);
+console.log(`   Port: ${config.port}`);
+console.log(`   DB Host: ${config.db.host}:${config.db.port}`);
+console.log(`   DB Name: ${config.db.database}`);
+console.log(`   CORS Origins: ${config.corsOrigins.join(", ")}`);
+console.log(`   Upload Dir: ${config.uploadDir}`);
+
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+// CORS configuration with multiple origins support
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    if (config.corsOrigins.includes(origin) || config.corsOrigins.includes("*")) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
-// --- File Upload Configuration (Multer) ---
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+// Health check endpoint for container orchestration
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE UPLOAD CONFIGURATION (Multer)
+// ─────────────────────────────────────────────────────────────────────────────
+if (!fs.existsSync(config.uploadDir)) {
+  fs.mkdirSync(config.uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir); 
+    cb(null, config.uploadDir); 
   },
   filename: (req, file, cb) => {
     // Append the timestamp to prevent file name collisions
     cb(null, Date.now() + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: config.maxFileSize }
+});
 
 // Serve uploaded files statically so the frontend can display/download them
-app.use('/uploads', express.static(uploadDir));
-// ------------------------------------------
+app.use('/uploads', express.static(config.uploadDir));
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DATABASE CONNECTION
+// ─────────────────────────────────────────────────────────────────────────────
 const pool = new Pool({
-  user: "postgres",
-  host: "db", // Change to "localhost" if running outside of Docker
-  database: "ticketing",
-  password: "postgres",
-  port: 5432,
+  host: config.db.host,
+  port: config.db.port,
+  database: config.db.database,
+  user: config.db.user,
+  password: config.db.password,
+  // Connection pool settings
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 const normalizeRole = (role) => (role || "").toUpperCase().trim();
@@ -828,6 +893,31 @@ app.delete("/companies/:id", async (req, res) => {
   }
 });
 
-app.listen(5000, () =>
-  console.log("Backend running on http://localhost:5000")
-);
+// ─────────────────────────────────────────────────────────────────────────────
+// SERVER STARTUP
+// ─────────────────────────────────────────────────────────────────────────────
+const server = app.listen(config.port, "0.0.0.0", () => {
+  console.log(`\n✅ Backend running on http://0.0.0.0:${config.port}`);
+  console.log(`   Health check: http://localhost:${config.port}/health\n`);
+});
+
+// Graceful shutdown
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log("HTTP server closed.");
+    pool.end(() => {
+      console.log("Database pool closed.");
+      process.exit(0);
+    });
+  });
+  
+  // Force close after 10 seconds
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout.");
+    process.exit(1);
+  }, 10000);
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
