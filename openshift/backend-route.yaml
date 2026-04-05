@@ -1,0 +1,12 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: backend-route
+spec:
+  host: api-ticket-system.apps.green.tnd.linux
+  to:
+    kind: Service
+    name: backend-service
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow

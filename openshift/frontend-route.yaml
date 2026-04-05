@@ -1,0 +1,12 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: frontend-route
+spec:
+  host: frontend-ticket-system.apps.green.tnd.linux
+  to:
+    kind: Service
+    name: frontend-service
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow
