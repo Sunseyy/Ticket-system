@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { API_URL } from "../../../config/api";
 import "./ManageCompanies.css";
 
 const normalizeRoleValue = (role) => (role || "").toUpperCase().trim();
@@ -57,7 +58,7 @@ function ManageCompanies() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/companies?adminId=${encodeURIComponent(adminId)}`
+        `${API_URL}/companies?adminId=${encodeURIComponent(adminId)}`
       );
 
       if (!response.ok) {
@@ -147,7 +148,7 @@ function ManageCompanies() {
     setInfo("");
 
     try {
-      const response = await fetch("http://localhost:5000/companies", {
+      const response = await fetch(`${API_URL}/companies`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -195,7 +196,7 @@ function ManageCompanies() {
     setInfo("");
 
     try {
-      const response = await fetch(`http://localhost:5000/companies/${company.id}`, {
+      const response = await fetch(`${API_URL}/companies/${company.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adminId }),

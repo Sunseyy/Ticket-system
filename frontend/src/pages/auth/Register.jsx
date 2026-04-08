@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { API_URL } from "../../config/api";
 
 function Register() {
   const [role, setRole] = useState("");
@@ -24,7 +25,7 @@ function Register() {
     console.log("Sending payload:", payload);
 
     try {
-      const res = await fetch("http://localhost:5000/register", {
+      const res = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -40,7 +41,7 @@ function Register() {
   // Fetch societies ONLY when role = CLIENT
 useEffect(() => {
   if (role === "CLIENT") {
-    fetch(`http://localhost:5000/societies?type=${role}`)
+    fetch(`${API_URL}/societies?type=${role}`)
       .then((res) => res.json())
       .then((data) => {
         console.log("Societies:", data);

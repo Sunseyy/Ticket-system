@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../config/api";
 import "./TicketDetails.css";
 
 function TicketDetails() {
@@ -28,7 +29,7 @@ function TicketDetails() {
   const userRole = user?.role?.toUpperCase?.().trim();
 
   useEffect(() => {
-    fetch(`http://localhost:5000/tickets/${ticketId}`)
+    fetch(`${API_URL}/tickets/${ticketId}`)
       .then((res) => res.json())
       .then((data) => setTicket(data))
       .catch((err) => console.error(err));
@@ -41,7 +42,7 @@ function TicketDetails() {
   // UPDATED: Now expects { comments: [], attachments: [] }
   const fetchComments = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/tickets/${ticketId}/comments`);
+      const res = await fetch(`${API_URL}/tickets/${ticketId}/comments`);
       const data = await res.json();
       
       if (data.comments && Array.isArray(data.comments)) {
@@ -112,7 +113,7 @@ function TicketDetails() {
     try {
       // 1. Upload text comment if it exists
       if (newComment.trim()) {
-        const res = await fetch(`http://localhost:5000/tickets/${ticketId}/comments`, {
+        const res = await fetch(`${API_URL}/tickets/${ticketId}/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -129,7 +130,7 @@ function TicketDetails() {
         formData.append("file", selectedFile);
         formData.append("userId", user?.id);
 
-        const fileRes = await fetch(`http://localhost:5000/tickets/${ticketId}/attachments`, {
+        const fileRes = await fetch(`${API_URL}/tickets/${ticketId}/attachments`, {
           method: "POST",
           body: formData, // No Content-Type header needed for FormData
         });
@@ -159,7 +160,7 @@ function TicketDetails() {
     setStatusFeedback("");
 
     try {
-      const res = await fetch(`http://localhost:5000/tickets/${ticket.id}/status`, {
+      const res = await fetch(`${API_URL}/tickets/${ticket.id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: Number(user.id), status: statusDraft }),
@@ -199,7 +200,7 @@ function TicketDetails() {
     setDeleteError("");
 
     try {
-      const res = await fetch(`http://localhost:5000/tickets/${ticket.id}`, {
+      const res = await fetch(`${API_URL}/tickets/${ticket.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: Number(user.id) }),
@@ -221,7 +222,7 @@ function TicketDetails() {
 
   const handleAssignToMe = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/tickets/${ticketId}/assign`, {
+      const res = await fetch(`${API_URL}/tickets/${ticketId}/assign`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agentId: user.id }),
@@ -380,7 +381,7 @@ function TicketDetails() {
             <div className="attachments-grid">
               {attachments.map((file) => {
                 const isImage = file.content_type?.startsWith('image/');
-                const fileUrl = `http://localhost:5000${file.file_path}`;
+                const fileUrl = `${API_URL}${file.file_path}`;
                 return (
                   <div key={file.id} className="attachment-item">
                     {isImage ? (

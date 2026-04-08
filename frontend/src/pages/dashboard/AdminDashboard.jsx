@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import MainLayout from "../../layout/MainLayout";
 import "./AdminDashboard.css";
 import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../config/api";
 
 const normalizeStatus = (status) =>
   (status || "")
@@ -72,7 +73,7 @@ function AdminDashboard() {
       setTicketsLoading(true);
       setError("");
       try {
-        const response = await fetch("http://localhost:5000/tickets?role=ADMIN", {
+        const response = await fetch(`${API_URL}/tickets?role=ADMIN`, {
           signal,
         });
 
@@ -100,7 +101,7 @@ function AdminDashboard() {
     async ({ signal } = {}) => {
       setAgentsLoading(true);
       try {
-        const response = await fetch("http://localhost:5000/agents", { signal });
+        const response = await fetch(`${API_URL}/agents`, { signal });
 
         if (!response.ok) {
           throw new Error("Failed to fetch agents");
@@ -168,7 +169,7 @@ function AdminDashboard() {
     setInfo("");
 
     try {
-      const response = await fetch(`http://localhost:5000/tickets/${ticketId}/assign`, {
+      const response = await fetch(`${API_URL}/tickets/${ticketId}/assign`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agentId }),
@@ -205,7 +206,7 @@ function AdminDashboard() {
     setInfo("");
 
     try {
-      const response = await fetch(`http://localhost:5000/tickets/${ticketId}`, {
+      const response = await fetch(`${API_URL}/tickets/${ticketId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id }),

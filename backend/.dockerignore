@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .dockerignore - Backend
+# ─────────────────────────────────────────────────────────────────────────────
+# Files to exclude from Docker build context for smaller images and faster builds
+
+# Dependencies (will be installed in container)
+node_modules/
+npm-debug.log*
+
+# Development files
+.git/
+.gitignore
+.env*
+*.md
+LICENSE
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Testing
+coverage/
+.nyc_output/
+__tests__/
+*.test.js
+*.spec.js
+
+# Uploads (mounted as volume)
+uploads/*
+!uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db

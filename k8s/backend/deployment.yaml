@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: backend
+ namespace: ticketing
+
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   app: backend
+ template:
+  metadata:
+   labels:
+    app: backend
+  spec:
+   containers:
+    - name: backend
+      image: sunseyy/ticketing-backend:latest
+
+      envFrom:
+       - configMapRef:
+          name: ticket-config
+       - secretRef: 
+          name: db-secret
+
+      volumeMounts:
+       - name: uploads-storage
+         mountPath: /app/uploads      
+   volumes:  
+    - name : uploads-storage
+      persistentVolumeClaim: 
+       claimName: uploads-pvc   
+
+
+       

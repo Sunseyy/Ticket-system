@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../config/api";
 import MainLayout from "../../layout/MainLayout";
 import "./CreateTicket.css";
 
@@ -49,7 +50,7 @@ export default function CreateTicket() {
 
     try {
       // 1. Create the Ticket
-      const res = await fetch("http://localhost:5000/tickets", {
+      const res = await fetch(`${API_URL}/tickets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -69,7 +70,7 @@ export default function CreateTicket() {
         fileData.append("file", selectedFile);
         fileData.append("userId", user.id);
 
-        const attachRes = await fetch(`http://localhost:5000/tickets/${data.id}/attachments`, {
+        const attachRes = await fetch(`${API_URL}/tickets/${data.id}/attachments`, {
           method: "POST",
           body: fileData,
         });
