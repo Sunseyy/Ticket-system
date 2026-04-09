@@ -7,6 +7,8 @@ spec:
   to:
     kind: Service
     name: backend-service
+  port:
+    targetPort: 5000
   tls:
     termination: edge
-    insecureEdgeTerminationPolicy: Allow
+    insecureEdgeTerminationPolicy: Redirect
