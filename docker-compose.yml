@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   frontend:
     build: ./frontend
@@ -23,12 +21,25 @@ services:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./database.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ticketing"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   backend:
     build: ./backend          # build from Dockerfile
     container_name: ticketing-backend
     working_dir: /app
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ticketing
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      CORS_ORIGIN: http://localhost:5173
     volumes:
       - ./backend:/app        # sync local code to container
       - /app/node_modules     # keep container-installed node_modules safe
@@ -36,7 +47,8 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   db-data:

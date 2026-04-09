@@ -35,9 +35,9 @@ frontend/src/context/   # AuthContext for session, role, and outlet data
 3. Docker provisions three services:
    - `frontend` on http://localhost:5173
    - `backend` API on http://localhost:5000
-   - `db` PostgreSQL instance on port 5432 with default credentials `postgres` / `postgres`
-4. Apply the database schema (see [Database Schema Snapshot](#database-schema-snapshot)).
-5. Create at least one admin user directly in the database so you can sign in to the admin dashboard.
+  - `db` PostgreSQL 15 instance on port 5432 with default credentials `postgres` / `postgres`
+4. The database is initialized automatically on first start from `database.sql`, which creates the tables, seeds demo societies/users/tickets, and stores data in the persistent `db-data` volume.
+5. If you already created an older database volume, reset it once with `docker compose down -v` before starting again.
 
 ## Manual Setup (without Docker)
 1. Start PostgreSQL locally and create a database named `ticketing`.

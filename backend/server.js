@@ -9,7 +9,9 @@ const fs = require("fs");
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
+
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
 // --- File Upload Configuration (Multer) ---
@@ -34,11 +36,11 @@ app.use('/uploads', express.static(uploadDir));
 // ------------------------------------------
 
 const pool = new Pool({
-  user: "postgres",
-  host: "db", // Change to "localhost" if running outside of Docker
-  database: "ticketing",
-  password: "postgres",
-  port: 5432,
+  user: process.env.DB_USER || "postgres",
+  host: process.env.DB_HOST || "db", // Change to "localhost" if running outside of Docker
+  database: process.env.DB_NAME || "ticketing",
+  password: process.env.DB_PASSWORD || "postgres",
+  port: Number(process.env.DB_PORT || 5432),
 });
 
 const normalizeRole = (role) => (role || "").toUpperCase().trim();
