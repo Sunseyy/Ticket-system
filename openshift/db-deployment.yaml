@@ -16,6 +16,8 @@ spec:
         - name: db
           image: postgres:15-alpine
           env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_USER 
               valueFrom:
                 secretKeyRef:
@@ -31,8 +33,6 @@ spec:
                 secretKeyRef:
                   name: db-secret
                   key: DB_NAME
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
           ports:  
             - containerPort: 5432
           volumeMounts:

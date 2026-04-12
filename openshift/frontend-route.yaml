@@ -7,6 +7,8 @@ spec:
   to:
     kind: Service
     name: frontend-service
+  port:
+    targetPort: 80
   tls:
     termination: edge
-    insecureEdgeTerminationPolicy: Allow
+    insecureEdgeTerminationPolicy: Redirect
