@@ -133,6 +133,8 @@ spec:
                 secretKeyRef:
                   name: auth-db-secret
                   key: password
+            - name: PGDATA
+              value: /var/lib/postgreql/data/pgdata
           volumeMounts:
             - name: auth-db-storage
               mountPath: /var/lib/postgresql/data
