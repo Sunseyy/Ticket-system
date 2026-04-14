@@ -1,0 +1,215 @@
+# ── Secret ────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: attachment-db-secret
+type: Opaque
+stringData:
+  username: postgres
+  password: postgres
+---
+# ── attachment-service Deployment ────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: attachment-service
+  labels:
+    app: attachment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: attachment-service
+  template:
+    metadata:
+      labels:
+        app: attachment-service
+    spec:
+      containers:
+        - name: attachment-service
+          image: sunseyy/attachment-service:latest
+          ports:
+            - containerPort: 3004
+          env:
+            - name: PORT
+              value: "3004"
+            - name: DB_HOST
+              value: "attachment-db"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "attachment_db"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: attachment-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: attachment-db-secret
+                  key: password
+            - name: UPLOAD_DIR
+              value: "/app/uploads"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /app/uploads
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: uploads-pvc
+---
+# ── uploads PVC ───────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# ── attachment-service Service ────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: attachment-service
+spec:
+  selector:
+    app: attachment-service
+  ports:
+    - protocol: TCP
+      port: 3004
+      targetPort: 3004
+---
+# ── Route ─────────────────────────────────────────────────────────────────────
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: attachment-service
+spec:
+  to:
+    kind: Service
+    name: attachment-service
+  port:
+    targetPort: 3004
+  tls:
+    termination: edge
+---
+# ── attachment-db Deployment ──────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: attachment-db
+  labels:
+    app: attachment-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: attachment-db
+  template:
+    metadata:
+      labels:
+        app: attachment-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: attachment_db
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: attachment-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: attachment-db-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: attachment-db-storage
+              mountPath: /var/lib/postgresql/data
+            - name: attachment-db-init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: attachment-db-storage
+          persistentVolumeClaim:
+            claimName: attachment-db-pvc
+        - name: attachment-db-init
+          configMap:
+            name: attachment-db-initdb
+---
+# ── PVC ───────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: attachment-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# ── attachment-db Service ─────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: attachment-db
+spec:
+  selector:
+    app: attachment-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+# ── ConfigMap: DB init SQL ────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: attachment-db-initdb
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS public.attachments (
+      id SERIAL PRIMARY KEY,
+      ticket_id INTEGER NOT NULL,
+      comment_id INTEGER,
+      uploaded_by INTEGER NOT NULL,
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      content_type TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      deleted_at TIMESTAMP
+    );
+
+    CREATE INDEX idx_attachments_ticket_id ON public.attachments(ticket_id);

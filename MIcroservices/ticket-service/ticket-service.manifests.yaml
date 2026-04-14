@@ -1,0 +1,278 @@
+# ── Secret ────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ticket-db-secret
+type: Opaque
+stringData:
+  username: postgres
+  password: postgres
+---
+# ── ticket-service Deployment ─────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-service
+  labels:
+    app: ticket-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-service
+  template:
+    metadata:
+      labels:
+        app: ticket-service
+    spec:
+      containers:
+        - name: ticket-service
+          image: sunseyy/ticket-service:latest
+          ports:
+            - containerPort: 3002
+          env:
+            - name: PORT
+              value: "3002"
+            - name: DB_HOST
+              value: "ticket-db"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "ticket_db"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-db-secret
+                  key: password
+            - name: CORS_ORIGINS
+              value: "http://frontend-service"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+---
+# ── ticket-service Service ────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-service
+spec:
+  selector:
+    app: ticket-service
+  ports:
+    - protocol: TCP
+      port: 3002
+      targetPort: 3002
+---
+# ── Route ─────────────────────────────────────────────────────────────────────
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ticket-service
+spec:
+  to:
+    kind: Service
+    name: ticket-service
+  port:
+    targetPort: 3002
+  tls:
+    termination: edge
+---
+# ── ticket-db Deployment ──────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-db
+  labels:
+    app: ticket-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket-db
+  template:
+    metadata:
+      labels:
+        app: ticket-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: ticket_db
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticket-db-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: ticket-db-storage
+              mountPath: /var/lib/postgresql/data
+            - name: ticket-db-init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: ticket-db-storage
+          persistentVolumeClaim:
+            claimName: ticket-db-pvc
+        - name: ticket-db-init
+          configMap:
+            name: ticket-db-initdb
+---
+# ── PVC ───────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ticket-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+# ── ticket-db Service ─────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-db
+spec:
+  selector:
+    app: ticket-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+# ── ConfigMap: DB init SQL ────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticket-db-initdb
+data:
+  init.sql: |
+    CREATE TYPE user_role AS ENUM ('CLIENT', 'AGENT', 'ADMIN');
+    CREATE TYPE ticket_status AS ENUM ('OPEN', 'IN_PROGRESS', 'WAITING_ON_CLIENT', 'RESOLVED', 'CLOSED');
+    CREATE TYPE ticket_priority AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
+
+    CREATE OR REPLACE FUNCTION update_modified_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+
+    -- Lightweight users table (read-only reference, synced from user-service)
+    CREATE TABLE IF NOT EXISTS public.users (
+      id SERIAL PRIMARY KEY,
+      full_name VARCHAR(255) NOT NULL,
+      role user_role NOT NULL,
+      deleted_at TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS public.tickets (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      product VARCHAR(100) NOT NULL,
+      category VARCHAR(100) NOT NULL,
+      department VARCHAR(100) NOT NULL,
+      priority ticket_priority DEFAULT 'MEDIUM' NOT NULL,
+      urgency VARCHAR(20),
+      status ticket_status DEFAULT 'OPEN' NOT NULL,
+      created_by INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+      society_id INTEGER,
+      assigned_agent_id INTEGER REFERENCES public.users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      deleted_at TIMESTAMP,
+      CONSTRAINT tickets_urgency_check CHECK (urgency IN ('Low', 'Medium', 'High'))
+    );
+
+    CREATE TABLE IF NOT EXISTS public.comments (
+      id SERIAL PRIMARY KEY,
+      ticket_id INTEGER NOT NULL REFERENCES public.tickets(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      deleted_at TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS public.attachments (
+      id SERIAL PRIMARY KEY,
+      ticket_id INTEGER REFERENCES public.tickets(id) ON DELETE CASCADE,
+      comment_id INTEGER REFERENCES public.comments(id) ON DELETE CASCADE,
+      uploaded_by INTEGER NOT NULL REFERENCES public.users(id),
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      content_type TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      deleted_at TIMESTAMP
+    );
+
+    CREATE TRIGGER update_tickets_modtime BEFORE UPDATE ON public.tickets
+      FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+    CREATE TRIGGER update_comments_modtime BEFORE UPDATE ON public.comments
+      FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+    -- Seed users (lightweight copy)
+    INSERT INTO public.users (id, full_name, role) VALUES
+    (1, 'sara', 'AGENT'),
+    (5, 'sarah', 'CLIENT'),
+    (6, 'System Admin', 'ADMIN'),
+    (7, 'Agent TnD', 'AGENT'),
+    (8, 'Client ooredoo', 'CLIENT');
+
+    -- Seed tickets
+    INSERT INTO public.tickets (id, title, description, product, category, department, priority, urgency, status, created_by, society_id, assigned_agent_id, created_at, updated_at) VALUES
+    (2, 'test', 'hello', 'Fortinet', 'test', 'info', 'HIGH', 'Medium', 'OPEN', 5, 6, NULL, '2026-02-16 12:17:00', '2026-02-16 12:17:00'),
+    (1, 'bdj', 'hebdhjb', 'Cisco', 'hjdbw', 'wdbhj', 'LOW', 'Low', 'IN_PROGRESS', 1, NULL, 1, '2026-02-14 22:06:37', '2026-02-16 14:20:17'),
+    (3, 'Internet Not Working', 'My home fiber connection has been down since yesterday.', 'Cisco', 'Internet / Fiber', '/', 'HIGH', 'High', 'OPEN', 8, 7, NULL, '2026-02-16 16:41:56', '2026-02-16 16:41:56');
+
+    -- Seed comments
+    INSERT INTO public.comments (id, ticket_id, user_id, content, created_at) VALUES
+    (1, 2, 1, 'test', '2026-02-16 12:24:10'),
+    (2, 2, 1, 'try to log in', '2026-02-16 12:25:24'),
+    (3, 2, 5, 'thx', '2026-02-16 16:07:15');
+
+    SELECT pg_catalog.setval('public.tickets_id_seq', 3, true);
+    SELECT pg_catalog.setval('public.comments_id_seq', 3, true);
+    SELECT pg_catalog.setval('public.users_id_seq', 8, true);
+
+    -- Indexes
+    CREATE INDEX idx_tickets_created_by ON public.tickets(created_by);
+    CREATE INDEX idx_tickets_assigned_agent ON public.tickets(assigned_agent_id);
+    CREATE INDEX idx_comments_ticket_id ON public.comments(ticket_id);
+    CREATE INDEX idx_attachments_ticket_id ON public.attachments(ticket_id);
