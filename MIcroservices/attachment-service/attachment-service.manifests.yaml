@@ -1,4 +1,6 @@
-# ── Secret ────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# SECRET
+# ─────────────────────────────────────────────
 apiVersion: v1
 kind: Secret
 metadata:
@@ -7,8 +9,26 @@ type: Opaque
 stringData:
   username: postgres
   password: postgres
+
 ---
-# ── attachment-service Deployment ────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# PVC: uploads
+# ─────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# ─────────────────────────────────────────────
+# ATTACHMENT SERVICE DEPLOYMENT
+# ─────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,6 +45,8 @@ spec:
       labels:
         app: attachment-service
     spec:
+      securityContext:
+        fsGroup: 1001
       containers:
         - name: attachment-service
           image: sunseyy/attachment-service:latest
@@ -50,7 +72,10 @@ spec:
                   name: attachment-db-secret
                   key: password
             - name: UPLOAD_DIR
-              value: "/app/uploads"
+              value: "/uploads"
+          volumeMounts:
+            - name: uploads-storage
+              mountPath: /uploads
           livenessProbe:
             httpGet:
               path: /health
@@ -63,9 +88,6 @@ spec:
               port: 3004
             initialDelaySeconds: 5
             periodSeconds: 10
-          volumeMounts:
-            - name: uploads-storage
-              mountPath: /app/uploads
           resources:
             requests:
               memory: "128Mi"
@@ -77,20 +99,11 @@ spec:
         - name: uploads-storage
           persistentVolumeClaim:
             claimName: uploads-pvc
+
 ---
-# ── uploads PVC ───────────────────────────────────────────────────────────────
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: uploads-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
-# ── attachment-service Service ────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# ATTACHMENT SERVICE
+# ─────────────────────────────────────────────
 apiVersion: v1
 kind: Service
 metadata:
@@ -102,8 +115,11 @@ spec:
     - protocol: TCP
       port: 3004
       targetPort: 3004
+
 ---
-# ── Route ─────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# ROUTE
+# ─────────────────────────────────────────────
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -116,8 +132,52 @@ spec:
     targetPort: 3004
   tls:
     termination: edge
+
 ---
-# ── attachment-db Deployment ──────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# DATABASE PVC
+# ─────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: attachment-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# ─────────────────────────────────────────────
+# DATABASE INIT CONFIGMAP
+# ─────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: attachment-db-initdb
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS public.attachments (
+      id SERIAL PRIMARY KEY,
+      ticket_id INTEGER NOT NULL,
+      comment_id INTEGER,
+      uploaded_by INTEGER NOT NULL,
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      content_type TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      deleted_at TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_attachments_ticket_id
+    ON public.attachments(ticket_id);
+
+---
+# ─────────────────────────────────────────────
+# DATABASE DEPLOYMENT
+# ─────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -155,31 +215,22 @@ spec:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:
-            - name: attachment-db-storage
+            - name: db-storage
               mountPath: /var/lib/postgresql/data
-            - name: attachment-db-init
+            - name: db-init
               mountPath: /docker-entrypoint-initdb.d
       volumes:
-        - name: attachment-db-storage
+        - name: db-storage
           persistentVolumeClaim:
             claimName: attachment-db-pvc
-        - name: attachment-db-init
+        - name: db-init
           configMap:
             name: attachment-db-initdb
+
 ---
-# ── PVC ───────────────────────────────────────────────────────────────────────
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: attachment-db-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
-# ── attachment-db Service ─────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# DATABASE SERVICE
+# ─────────────────────────────────────────────
 apiVersion: v1
 kind: Service
 metadata:
@@ -191,25 +242,3 @@ spec:
     - protocol: TCP
       port: 5432
       targetPort: 5432
----
-# ── ConfigMap: DB init SQL ────────────────────────────────────────────────────
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: attachment-db-initdb
-data:
-  init.sql: |
-    CREATE TABLE IF NOT EXISTS public.attachments (
-      id SERIAL PRIMARY KEY,
-      ticket_id INTEGER NOT NULL,
-      comment_id INTEGER,
-      uploaded_by INTEGER NOT NULL,
-      file_name TEXT NOT NULL,
-      file_path TEXT NOT NULL,
-      file_size INTEGER NOT NULL,
-      content_type TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      deleted_at TIMESTAMP
-    );
-
-    CREATE INDEX idx_attachments_ticket_id ON public.attachments(ticket_id);
