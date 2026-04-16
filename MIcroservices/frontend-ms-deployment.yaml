@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-ms
+  labels:
+    app: frontend-ms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-ms
+  template:
+    metadata:
+      labels:
+        app: frontend-ms
+    spec:
+      containers:
+        - name: frontend-ms
+          image: sunseyy/ticketing-frontend-ms:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: VITE_API_URL
+              value: "https://api-gateway-ticket-system.apps.green.tnd.linux"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-ms
+spec:
+  selector:
+    app: frontend-ms
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: frontend-ms
+spec:
+  to:
+    kind: Service
+    name: frontend-ms
+  port:
+    targetPort: 80
+  tls:
+    termination: edge
