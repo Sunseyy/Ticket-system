@@ -55,7 +55,10 @@ function TicketDetails() {
       } else {
         setComments([]);
       }
-
+          // fetch attachments separately ← ADD THIS
+    const attRes = await fetch(`${API_URL}/tickets/${ticketId}/attachments`);
+    const attData = await attRes.json();
+    setAttachments(Array.isArray(attData) ? attData : []);
       if (data.attachments && Array.isArray(data.attachments)) {
         setAttachments(data.attachments);
       } else {
