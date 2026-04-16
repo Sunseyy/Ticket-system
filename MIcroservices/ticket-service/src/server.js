@@ -338,7 +338,25 @@ app.post("/tickets/:id/comments", async (req, res) => {
     res.status(500).json({ error: "Failed to add comment" });
   }
 });
-
+// ─── INTERNAL: Sync user from auth/user service ───────────────────────────────
+app.post("/internal/sync-user", async (req, res) => {
+  const { id, full_name, role } = req.body;
+  if (!id || !full_name || !role) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+  try {
+    await pool.query(
+      `INSERT INTO users (id, full_name, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET full_name = $2, role = $3`,
+      [id, full_name, role.toUpperCase()]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Sync user error:", err);
+    res.status(500).json({ error: "Failed to sync user" });
+  }
+});
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(`✅ ticket-service running on port ${config.port}`);
