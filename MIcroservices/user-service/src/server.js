@@ -208,7 +208,26 @@ app.delete("/companies/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to delete company" });
   }
 });
+// ─── INTERNAL: Sync user to ticket-service ────────────────────────────────────
+app.post("/internal/sync-user", async (req, res) => {
+  const { id, full_name, role, society_id } = req.body;
+  if (!id || !full_name || !role) {
+    return res.status(400).json({ error: "id, full_name and role are required" });
+  }
 
+  // Sync to ticket-db via ticket-service internal endpoint
+  try {
+    await fetch(`http://ticket-service:3002/internal/sync-user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, full_name, role })
+    });
+  } catch (err) {
+    console.warn("Sync to ticket-service failed:", err.message);
+  }
+
+  res.json({ ok: true });
+});
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(`✅ user-service running on port ${config.port}`);
