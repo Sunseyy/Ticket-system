@@ -9,7 +9,6 @@ function TicketDetails() {
   const navigate = useNavigate();
   const [ticket, setTicket] = useState(null);
   
-  // NEW: Added attachments state
   const [comments, setComments] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -39,12 +38,11 @@ function TicketDetails() {
     fetchComments();
   }, [ticketId]);
 
-  // UPDATED: Now expects { comments: [], attachments: [] }
   const fetchComments = async () => {
     try {
       const res = await fetch(`${API_URL}/tickets/${ticketId}/comments`);
       const data = await res.json();
-      
+
       if (data.comments && Array.isArray(data.comments)) {
         setComments(
           data.comments.map((comment) => ({
@@ -55,15 +53,11 @@ function TicketDetails() {
       } else {
         setComments([]);
       }
-          // fetch attachments separately ← ADD THIS
-    const attRes = await fetch(`${API_URL}/tickets/${ticketId}/attachments`);
-    const attData = await attRes.json();
-    setAttachments(Array.isArray(attData) ? attData : []);
-      if (data.attachments && Array.isArray(data.attachments)) {
-        setAttachments(data.attachments);
-      } else {
-        setAttachments([]);
-      }
+
+      // Fetch attachments separately
+      const attRes = await fetch(`${API_URL}/tickets/${ticketId}/attachments`);
+      const attData = await attRes.json();
+      setAttachments(Array.isArray(attData) ? attData : []);
 
     } catch (err) {
       console.error(err);
@@ -100,7 +94,6 @@ function TicketDetails() {
     { value: "CLOSED", label: "Closed" },
   ];
 
-  // UPDATED: Handles both text comments and file uploads
   const handleAddComment = async (e) => {
     e.preventDefault();
     if (!ticket || !user?.id) return;
@@ -108,13 +101,12 @@ function TicketDetails() {
       setCommentError(commentRestrictionMessage || "You are not allowed to comment on this ticket.");
       return;
     }
-    if (!newComment.trim() && !selectedFile) return; // Must have either text or a file
+    if (!newComment.trim() && !selectedFile) return;
 
     setCommentSubmitting(true);
     setCommentError("");
 
     try {
-      // 1. Upload text comment if it exists
       if (newComment.trim()) {
         const res = await fetch(`${API_URL}/tickets/${ticketId}/comments`, {
           method: "POST",
@@ -127,7 +119,6 @@ function TicketDetails() {
         if (!res.ok) throw new Error("Failed to add comment");
       }
 
-      // 2. Upload file if it exists
       if (selectedFile) {
         const formData = new FormData();
         formData.append("file", selectedFile);
@@ -135,15 +126,14 @@ function TicketDetails() {
 
         const fileRes = await fetch(`${API_URL}/tickets/${ticketId}/attachments`, {
           method: "POST",
-          body: formData, // No Content-Type header needed for FormData
+          body: formData,
         });
         if (!fileRes.ok) throw new Error("Failed to upload attachment");
       }
 
-      // 3. Reset UI and refresh data
       setNewComment("");
       setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = ""; // Clear file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
       fetchComments();
 
     } catch (err) {
@@ -236,8 +226,6 @@ function TicketDetails() {
       }
 
       const updatedTicket = await res.json();
-      
-      // Update the UI immediately to unlock the comment box and status dropdown
       setTicket((prev) => ({
         ...prev,
         assigned_agent_id: updatedTicket.assigned_agent_id,
