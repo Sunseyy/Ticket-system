@@ -1,8 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { API_URL } from "../../config/api";
 
 function Register() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const [role, setRole] = useState("");
   const [societies, setSocieties] = useState([]);
   const [selectedSociety, setSelectedSociety] = useState("");
@@ -10,13 +14,34 @@ function Register() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setLoading(false);
+      return;
+    }
 
     const payload = {
       full_name: fullName,
-      email,
+      email: email.trim().toLowerCase(),
       password,
       role,
       societyId: role === "CLIENT" ? selectedSociety : null,
@@ -32,9 +57,24 @@ function Register() {
       });
 
       const data = await res.json();
-      console.log("Registered:", data);
+
+      if (!res.ok) {
+        throw new Error(data.error || "Registration failed");
+      }
+
+      setSuccess("✅ Account created successfully! Logging you in...");
+      console.log("Registered:", data.user);
+      
+      // Auto-login after 1.5 seconds
+      setTimeout(() => {
+        login(data.user);
+        navigate("/dashboard");
+      }, 1500);
     } catch (err) {
       console.error("Register error:", err);
+      setError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +106,9 @@ useEffect(() => {
         <div style={styles.formSectionSmall}>
           <h2 style={styles.formTitle}>Create Account</h2>
 
+          {error && <div style={styles.errorMessage}>{error}</div>}
+          {success && <div style={styles.successMessage}>{success}</div>}
+
           <form style={styles.form} onSubmit={handleSubmit}>
             <input
               type="text"
@@ -74,6 +117,7 @@ useEffect(() => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
+              disabled={loading}
             />
 
             <input
@@ -83,6 +127,7 @@ useEffect(() => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
 
             <input
@@ -92,6 +137,17 @@ useEffect(() => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
+            />
+
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              style={styles.input}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              disabled={loading}
             />
 
             {/* Role selection */}
@@ -100,6 +156,7 @@ useEffect(() => {
               value={role}
               onChange={(e) => setRole(e.target.value)}
               required
+              disabled={loading}
             >
               <option value="">Select Role</option>
               <option value="CLIENT">Client</option>
@@ -113,6 +170,7 @@ useEffect(() => {
                 value={selectedSociety}
                 onChange={(e) => setSelectedSociety(e.target.value)}
                 required
+                disabled={loading}
               >
                 <option value="">Select Your Society</option>
                 {societies.map((s) => (
@@ -123,8 +181,8 @@ useEffect(() => {
               </select>
             )}
 
-            <button style={styles.button} type="submit">
-              Register
+            <button style={styles.button} type="submit" disabled={loading}>
+              {loading ? "Registering..." : "Register"}
             </button>
           </form>
 
@@ -134,8 +192,6 @@ useEffect(() => {
               Login
             </Link>
           </p>
-
-          <p>ROLE STATE: {role}</p>
         </div>
       </div>
     </div>
@@ -229,6 +285,32 @@ const styles = {
     color: "#1a3a52",
     textDecoration: "none",
     fontWeight: "600",
+  },
+  errorMessage: {
+    padding: "10px 12px",
+    marginBottom: "12px",
+    backgroundColor: "#fee",
+    color: "#c33",
+    border: "1px solid #fcc",
+    borderRadius: "6px",
+    fontSize: "14px",
+    textAlign: "center",
+    width: "100%",
+    maxWidth: "300px",
+    boxSizing: "border-box",
+  },
+  successMessage: {
+    padding: "10px 12px",
+    marginBottom: "12px",
+    backgroundColor: "#efe",
+    color: "#3c3",
+    border: "1px solid #cfc",
+    borderRadius: "6px",
+    fontSize: "14px",
+    textAlign: "center",
+    width: "100%",
+    maxWidth: "300px",
+    boxSizing: "border-box",
   },
 };
 

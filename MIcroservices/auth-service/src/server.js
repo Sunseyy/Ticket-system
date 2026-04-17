@@ -46,12 +46,24 @@ app.get("/health", (req, res) => {
   res.json({ status: "healthy", service: "auth-service", timestamp: new Date().toISOString() });
 });
 
+// ─── Helper: Normalize email ───────────────────────────────────────────────
+const normalizeEmail = (email) => {
+  return (email || "").trim().toLowerCase();
+};
+
 // ─── REGISTER ────────────────────────────────────────────────────────────────
 app.post("/register", async (req, res) => {
   const { full_name, email, password, role, societyId } = req.body;
 
-  if (!full_name || !email || !password || !role) {
+  // Normalize email for comparison and storage
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!full_name || !normalizedEmail || !password || !role) {
     return res.status(400).json({ error: "full_name, email, password and role are required" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters" });
   }
 
   const allowedRoles = ["CLIENT", "AGENT", "ADMIN"];
@@ -65,11 +77,15 @@ app.post("/register", async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (full_name, email, password_hash, role, society_id)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, role`,
-      [full_name, email.trim().toLowerCase(), hash, role.toUpperCase(), societyId || null]
+       RETURNING id, full_name, email, role, society_id`,
+      [full_name, normalizedEmail, hash, role.toUpperCase(), societyId || null]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newUser = result.rows[0];
+    res.status(201).json({ 
+      message: "User registered successfully",
+      user: newUser 
+    });
   } catch (err) {
     console.error("Register error:", err);
     if (err.code === "23505") {
@@ -82,8 +98,9 @@ app.post("/register", async (req, res) => {
 // ─── LOGIN ───────────────────────────────────────────────────────────────────
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = normalizeEmail(email);
 
-  if (!email || !password) {
+  if (!normalizedEmail || !password) {
     return res.status(400).json({ error: "Email and password are required" });
   }
 
@@ -91,8 +108,8 @@ app.post("/login", async (req, res) => {
     const result = await pool.query(
       `SELECT id, full_name, email, password_hash, role, society_id
        FROM users
-       WHERE email = $1 AND deleted_at IS NULL`,
-      [email.trim().toLowerCase()]
+       WHERE LOWER(email) = $1 AND deleted_at IS NULL`,
+      [normalizedEmail]
     );
 
     if (result.rows.length === 0) {
