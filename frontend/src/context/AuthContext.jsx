@@ -32,27 +32,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-<<<<<<< Updated upstream
-  // On mount, restore user from localStorage if it exists
-  useEffect(() => {
-    console.log("🔄 AuthContext: Attempting to restore session from localStorage...");
-    try {
-      const storedUser = getStorageItem("user");
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-        console.log("✅ AuthContext: User restored from localStorage:", userData);
-      } else {
-        console.log("ℹ️ AuthContext: No stored user found in localStorage");
-      }
-    } catch (err) {
-      console.error("❌ AuthContext: Failed to restore user from localStorage:", err);
-      removeStorageItem("user");
-    } finally {
-      setIsLoading(false);
-      console.log("✅ AuthContext: Auth initialization complete");
-    }
-=======
   // Restore session on mount
   useEffect(() => {
     console.log("🔄 AuthContext: Initializing...");
@@ -97,18 +76,10 @@ export const AuthProvider = ({ children }) => {
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
->>>>>>> Stashed changes
   }, []);
 
   const login = (userData) => {
     if (userData && typeof userData === "object") {
-<<<<<<< Updated upstream
-      setUser(userData);
-      setStorageItem("user", JSON.stringify(userData));
-      console.log("✅ AuthContext: User logged in and stored:", userData);
-    } else {
-      console.error("❌ AuthContext: Invalid userData passed to login:", userData);
-=======
       // Clear any existing session first
       setUser(null);
       removeStorageItem("user");
@@ -121,18 +92,13 @@ export const AuthProvider = ({ children }) => {
       }, 0);
     } else {
       console.error("❌ AuthContext: Invalid userData:", userData);
->>>>>>> Stashed changes
     }
   };
 
   const logout = () => {
     setUser(null);
     removeStorageItem("user");
-<<<<<<< Updated upstream
-    console.log("✅ AuthContext: User logged out and cleared from localStorage");
-=======
     console.log("✅ AuthContext: User logged out");
->>>>>>> Stashed changes
   };
 
   return (
