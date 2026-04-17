@@ -3,26 +3,6 @@ import { useAuth } from "../context/AuthContext";
 
 function ProtectedRoute({ children }) {
   const { user, isLoading } = useAuth();
-<<<<<<< Updated upstream
-=======
-
-  // Wait for auth restoration from localStorage
-  if (isLoading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        background: '#f8f9fa',
-        flexDirection: 'column',
-      }}>
-        <div style={{ fontSize: '18px', color: '#333' }}>Loading...</div>
-        <div style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>Restoring session</div>
-      </div>
-    );
-  }
->>>>>>> Stashed changes
 
   // Wait for auth restoration from localStorage
   if (isLoading) {
@@ -48,5 +28,7 @@ function ProtectedRoute({ children }) {
 
   return children;
 }
+
+export default ProtectedRoute;
 
 export default ProtectedRoute;
