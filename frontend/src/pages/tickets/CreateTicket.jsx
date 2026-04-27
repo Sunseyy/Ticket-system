@@ -13,7 +13,7 @@ export default function CreateTicket() {
     title: "",
     description: "",
     product: "",
-    priority: "Low",
+    //priority: "Low",
     category: "",
     urgency: "",
     department: "",
@@ -160,6 +160,7 @@ export default function CreateTicket() {
             </select>
           </div>
 
+         {/*
           <div className="form-group">
             <label>Priority:</label>
             <select
@@ -172,7 +173,7 @@ export default function CreateTicket() {
               <option value="Medium">Medium</option>
               <option value="High">High</option>
             </select>
-          </div>
+          </div>*/}
 
           <div className="form-group">
             <label>Category:</label>
