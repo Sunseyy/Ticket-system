@@ -47,7 +47,7 @@ app.get("/health", (req, res) => {
 
 // ─── CREATE TICKET ────────────────────────────────────────────────────────────
 app.post("/tickets", async (req, res) => {
-  const { title, description, product, category, department, priority, urgency, userId, userRole, userSocietyId } = req.body;
+  const { title, description, product, category, department, urgency, userId, userRole, userSocietyId } = req.body;
 
   if (!title || !description || !product || !category || !department) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -60,10 +60,10 @@ app.post("/tickets", async (req, res) => {
   try {
     const result = await pool.query(
       `INSERT INTO tickets
-       (title, description, product, category, department, priority, urgency, status, created_by, society_id)
-       VALUES ($1,$2,$3,$4,$5,UPPER($6)::ticket_priority,$7,'OPEN',$8,$9)
+       (title, description, product, category, department, urgency, status, created_by, society_id)
+       VALUES ($1,$2,$3,$4,$5,$6,'OPEN',$7,$8)
        RETURNING *`,
-      [title, description, product, category, department, priority, urgency || null, userId,
+      [title, description, product, category, department, urgency || null, userId,
         userRole === "CLIENT" ? userSocietyId : null]
     );
     res.status(201).json(result.rows[0]);
@@ -82,7 +82,7 @@ app.get("/tickets", async (req, res) => {
     if (role && role.toUpperCase() === "CLIENT") {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
-                t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+                t.urgency, t.status, t.created_at, t.updated_at,
                 u.full_name AS created_by_name, a.full_name AS assigned_agent_name
          FROM tickets t
          JOIN users u ON t.created_by = u.id
@@ -94,7 +94,7 @@ app.get("/tickets", async (req, res) => {
     } else if (role && role.toUpperCase() === "AGENT") {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
-                t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+                t.urgency, t.status, t.created_at, t.updated_at,
                 u.full_name AS created_by_name, a.full_name AS assigned_agent_name
          FROM tickets t
          JOIN users u ON t.created_by = u.id
@@ -106,7 +106,7 @@ app.get("/tickets", async (req, res) => {
     } else {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
-                t.priority, t.urgency, t.status, t.created_at, t.updated_at,
+                t.urgency, t.status, t.created_at, t.updated_at,
                 u.full_name AS created_by_name, a.full_name AS assigned_agent_name
          FROM tickets t
          JOIN users u ON t.created_by = u.id
@@ -127,7 +127,7 @@ app.get("/tickets", async (req, res) => {
 app.get("/tickets/latest", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT t.id, t.title, t.status, t.priority, t.created_at,
+      `SELECT t.id, t.title, t.status, t.urgency, t.created_at,
               u.full_name AS created_by_name, a.full_name AS assigned_agent_name
        FROM tickets t
        JOIN users u ON t.created_by = u.id
@@ -148,7 +148,7 @@ app.get("/tickets/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
-      `SELECT t.id, t.title, t.description, t.status, t.priority, t.urgency,
+      `SELECT t.id, t.title, t.description, t.status, t.urgency,
               t.created_at, t.updated_at, t.created_by, t.assigned_agent_id,
               u.full_name AS created_by_name, a.full_name AS assigned_agent_name
        FROM tickets t
