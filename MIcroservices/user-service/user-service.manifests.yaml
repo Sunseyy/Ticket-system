@@ -25,6 +25,34 @@ spec:
       labels:
         app: user-service
     spec:
+      initContainers:
+        - name: init-user-db
+          image: sunseyy/user-service-db-init:latest
+          env:
+           - name: DB_HOST
+             value: "user-db"
+           - name: DB_PORT
+             value: "5432"
+           - name: DB_NAME
+             value: "user_db"
+           - name: DB_USER
+             valueFrom:
+               secretKeyRef:
+                 name: user-db-secret
+                 key: username
+           - name: DB_PASSWORD
+             valueFrom:
+               secretKeyRef:
+                 name: user-db-secret
+                 key: password
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+                    
       containers:
         - name: user-service
           image: sunseyy/user-service:latest
@@ -68,6 +96,15 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
 ---
 # ── user-service Service ──────────────────────────────────────────────────────
 apiVersion: v1
@@ -136,15 +173,11 @@ spec:
           volumeMounts:
             - name: user-db-storage
               mountPath: /var/lib/postgresql/data
-            - name: user-db-init
-              mountPath: /docker-entrypoint-initdb.d
+
       volumes:
         - name: user-db-storage
           persistentVolumeClaim:
             claimName: user-db-pvc
-        - name: user-db-init
-          configMap:
-            name: user-db-initdb
 ---
 # ── PVC ───────────────────────────────────────────────────────────────────────
 apiVersion: v1
@@ -172,65 +205,3 @@ spec:
       targetPort: 5432
 ---
 # ── ConfigMap: DB init SQL ────────────────────────────────────────────────────
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: user-db-initdb
-data:
-  init.sql: |
-    CREATE TYPE user_role AS ENUM ('CLIENT', 'AGENT', 'ADMIN');
-
-    CREATE OR REPLACE FUNCTION update_modified_column()
-    RETURNS TRIGGER AS $$
-    BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
-    $$ language 'plpgsql';
-
-    CREATE TABLE IF NOT EXISTS public.societies (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      type VARCHAR(50) NOT NULL,
-      contact_email VARCHAR(255),
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW(),
-      deleted_at TIMESTAMP,
-      CONSTRAINT societies_type_check CHECK (type IN ('client', 'tech'))
-    );
-
-    CREATE TABLE IF NOT EXISTS public.users (
-      id SERIAL PRIMARY KEY,
-      full_name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      role user_role NOT NULL,
-      society_id INTEGER REFERENCES public.societies(id) ON DELETE SET NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW(),
-      deleted_at TIMESTAMP
-    );
-
-    CREATE TRIGGER update_societies_modtime BEFORE UPDATE ON public.societies
-      FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-    CREATE TRIGGER update_users_modtime BEFORE UPDATE ON public.users
-      FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-    -- Seed data
-    INSERT INTO public.societies (id, name, type, contact_email) VALUES
-    (3, 'ByteWorks', 'tech', 'hello@byteworks.com'),
-    (5, 'Algérie Télécom', 'client', NULL),
-    (6, 'Fortinet', 'client', NULL),
-    (7, 'Ooredoo', 'client', NULL),
-    (8, 'Natixis', 'client', NULL),
-    (9, 'Ericsson', 'client', NULL),
-    (10, 'Société Générale', 'client', NULL);
-
-    INSERT INTO public.users (id, full_name, email, password_hash, role, society_id) VALUES
-    (1, 'sara', 'sarab@gmail.com', '$2b$10$BHGoGG79ShH0lN/oUaNeVODvJOeLxlXDBoy8TQIHvgA/CFauRhc9m', 'AGENT', NULL),
-    (5, 'sarah', 'sarawb@gmail.com', '$2b$10$o5uJAm03bERetDtzxor1YuEV.B2oRcYW5VWikEqRB0VE7qUTZPwmy', 'CLIENT', 6),
-    (6, 'System Admin', 'admin@tnd.dz', '$2b$10$XCVqyB0OKoK6F.CDT8COEuQs22z3WI1oDNnx8SR9rD3fUeiMibaXi', 'ADMIN', NULL),
-    (7, 'Agent TnD', 'Agent@tnd.dz', '$2b$10$I7meLngr/f/.2gbNg1iYSuAJE7T2jDjJKoTGfjv0T0.sisI8eJhSq', 'AGENT', NULL),
-    (8, 'Client ooredoo', 'Client@ooredoo.dz', '$2b$10$qWqcuBBDohqdnkOSGPdpT./CIcvQ0TaeIV2e7b.sad6gZYPCit6FC', 'CLIENT', 7);
-
-    SELECT pg_catalog.setval('public.societies_id_seq', 10, true);
-    SELECT pg_catalog.setval('public.users_id_seq', 8, true);
-
-    CREATE INDEX idx_users_society_id ON public.users(society_id);

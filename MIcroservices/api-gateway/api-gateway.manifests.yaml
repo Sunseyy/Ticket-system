@@ -39,6 +39,15 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "100m"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"] 
+            seccompProfile:
+              type: RuntimeDefault    
 ---
 # ── api-gateway Service ───────────────────────────────────────────────────────
 apiVersion: v1

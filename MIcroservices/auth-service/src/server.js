@@ -130,6 +130,56 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+// ─── REGISTER ────────────────────────────────────────────────────────────────
+app.post("/register", async (req, res) => {
+  const { full_name, email, password, role, societyId } = req.body;
+
+  if (!full_name || !email || !password || !role) {
+    return res.status(400).json({ error: "full_name, email, password and role are required" });
+  }
+
+  const allowedRoles = ["CLIENT", "AGENT", "ADMIN"];
+  if (!allowedRoles.includes(role.toUpperCase())) {
+    return res.status(400).json({ error: "Invalid role. Must be CLIENT, AGENT or ADMIN" });
+  }
+
+  try {
+    const hash = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (full_name, email, password_hash, role, society_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, role`,
+      [full_name, email.trim().toLowerCase(), hash, role.toUpperCase(), societyId || null]
+    );
+
+    const newUser = result.rows[0];
+
+    // ── Sync to ticket-service DB via user-service ──
+    try {
+      await fetch(`http://user-service:3003/internal/sync-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: newUser.id,
+          full_name,
+          role: role.toUpperCase(),
+          society_id: societyId || null
+        })
+      });
+    } catch (syncErr) {
+      console.warn("Sync to user-service failed (non-blocking):", syncErr.message);
+    }
+
+    res.status(201).json(newUser);
+  } catch (err) {
+    console.error("Register error:", err);
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 // ─── Graceful shutdown ───────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
