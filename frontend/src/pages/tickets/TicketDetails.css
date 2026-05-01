@@ -593,6 +593,84 @@
   opacity: 1;
 }
 
+/* Integrated Attachments in Comments Thread */
+.attachment-comment {
+  background: #f9fafe;
+  border: 1px solid #e5e9f2;
+}
+
+.attachment-in-thread {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.attachment-preview-inline {
+  display: block;
+  flex-shrink: 0;
+}
+
+.inline-image {
+  max-height: 200px;
+  max-width: 300px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.attachment-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.attachment-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.attachment-link {
+  color: #386bff;
+  text-decoration: none;
+  font-weight: 600;
+  word-break: break-word;
+  transition: color 0.2s ease;
+}
+
+.attachment-link:hover {
+  color: #274690;
+  text-decoration: underline;
+}
+
+.attachment-meta {
+  font-size: 0.8rem;
+  color: #6d789c;
+}
+
+.attachment-download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #e8eeff;
+  color: #386bff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.attachment-download-btn:hover {
+  background: #386bff;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
 @media (max-width: 1200px) {
   .ticket-page {
     flex-direction: column;
