@@ -8,9 +8,8 @@ function TicketDetails() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState(null);
-  
+
   const [comments, setComments] = useState([]);
-  const [attachments, setAttachments] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -43,26 +42,41 @@ function TicketDetails() {
       const res = await fetch(`${API_URL}/tickets/${ticketId}/comments`);
       const data = await res.json();
 
+      let allItems = [];
+
+      // Fetch comments
       if (data.comments && Array.isArray(data.comments)) {
-        setComments(
-          data.comments.map((comment) => ({
-            ...comment,
-            content: comment.content || comment.text || comment.comment || "",
-          }))
-        );
-      } else {
-        setComments([]);
+        const commentItems = data.comments.map((comment) => ({
+          ...comment,
+          type: "comment",
+          content: comment.content || comment.text || comment.comment || "",
+        }));
+        allItems.push(...commentItems);
       }
 
-      // Fetch attachments separately
+      // Fetch attachments
       const attRes = await fetch(`${API_URL}/tickets/${ticketId}/attachments`);
       const attData = await attRes.json();
-      setAttachments(Array.isArray(attData) ? attData : []);
+      if (Array.isArray(attData)) {
+        const attachmentItems = attData.map((att) => ({
+          ...att,
+          type: "attachment",
+        }));
+        allItems.push(...attachmentItems);
+      }
+
+      // Sort all items by created_at date (chronologically)
+      allItems.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateA - dateB;
+      });
+
+      setComments(allItems);
 
     } catch (err) {
       console.error(err);
       setComments([]);
-      setAttachments([]);
     }
   };
 
@@ -168,10 +182,10 @@ function TicketDetails() {
       setTicket((prev) =>
         prev
           ? {
-              ...prev,
-              status: data.status || statusDraft,
-              updated_at: data.updated_at || prev.updated_at,
-            }
+            ...prev,
+            status: data.status || statusDraft,
+            updated_at: data.updated_at || prev.updated_at,
+          }
           : prev
       );
       setStatusFeedback("Status updated successfully.");
@@ -231,7 +245,7 @@ function TicketDetails() {
         assigned_agent_id: updatedTicket.assigned_agent_id,
         assigned_agent_name: user.full_name || user.name,
       }));
-      
+
     } catch (err) {
       console.error("Assignment error:", err);
       alert("Could not assign ticket to you.");
@@ -269,15 +283,12 @@ function TicketDetails() {
 
   const statusLabel = formatStatusLabel(ticket.status);
   const statusClass = normalizeForClass(ticket.status);
-  const priorityLabel = ticket.priority ? formatStatusLabel(ticket.priority) : null;
-  const priorityClass = normalizeForClass(ticket.priority);
   const ticketCode =
     ticket.ticket_code ||
     ticket.reference ||
     (ticket.id ? `T-${String(ticket.id).padStart(4, "0")}` : "Ticket");
 
   const detailFields = [
-    { label: "Priority", value: ticket.priority || "Not set" },
     { label: "Assigned To", value: ticket.assigned_agent_name || "Unassigned" },
     { label: "Reporter", value: ticket.created_by_name || "Unknown" },
     { label: "Status", value: statusLabel },
@@ -293,11 +304,6 @@ function TicketDetails() {
             <div className="ticket-header-top">
               <span className="ticket-code">{ticketCode}</span>
               <span className={`ticket-chip status ${statusClass}`}>{statusLabel}</span>
-              {priorityLabel && (
-                <span className={`ticket-chip priority ${priorityClass}`}>
-                  {priorityLabel}
-                </span>
-              )}
             </div>
             <h1>{ticket.title}</h1>
             <p className="ticket-subtitle">
@@ -318,9 +324,9 @@ function TicketDetails() {
               </button>
             )}
             {userRole === "AGENT" && !isAssignedAgent && (
-              <button 
-                type="button" 
-                className="primary-button" 
+              <button
+                type="button"
+                className="primary-button"
                 onClick={handleAssignToMe}
               >
                 Claim Ticket
@@ -365,71 +371,68 @@ function TicketDetails() {
           </section>
         )}
 
-        {/* Attachments Display Section */}
-        {attachments.length > 0 && (
-          <section className="attachments-card">
-            <h2>Attachments</h2>
-            <div className="attachments-grid">
-              {attachments.map((file) => {
-                const isImage = file.content_type?.startsWith('image/');
-                const fileUrl = `${API_URL}${file.file_path}`;
-                return (
-                  <div key={file.id} className="attachment-item">
-                    {isImage ? (
-                      <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="attachment-preview">
-                        <img src={fileUrl} alt={file.file_name} />
-                      </a>
-                    ) : (
-                      <div className="attachment-icon">
-                        📄
-                      </div>
-                    )}
-                    <div className="attachment-info">
-                      <a 
-                        href={fileUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="attachment-name"
-                      >
-                        {file.file_name}
-                      </a>
-                      <span className="attachment-size">
-                        {Math.round(file.file_size / 1024)} KB
-                      </span>
-                    </div>
-                    <a 
-                      href={fileUrl} 
-                      download={file.file_name}
-                      className="attachment-download"
-                      title="Download"
-                    >
-                      ⬇
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
         <section className="comments-thread">
           <h2>Conversation</h2>
           {Array.isArray(comments) && comments.length > 0 ? (
-            comments.map((c) => (
-              <article key={c.id} className="comment-card">
-                <header className="comment-header">
-                  <span className="comment-author">
-                    {c.author_name || c.author || c.authorName || "Unknown"}
-                  </span>
-                  <span className="comment-date">
-                    {c.created_at ? new Date(c.created_at).toLocaleString() : ""}
-                  </span>
-                </header>
-                <p className="comment-text">{c.content || c.text || c.comment || ""}</p>
-              </article>
-            ))
+            comments.map((item) => {
+              if (item.type === "attachment") {
+                const isImage = item.content_type?.startsWith('image/');
+                const fileUrl = `${API_URL}${item.file_path}`;
+                return (
+                  <article key={item.id} className="comment-card attachment-comment">
+                    <header className="comment-header">
+                      <span className="comment-author">📎 Attachment</span>
+                      <span className="comment-date">
+                        {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
+                      </span>
+                    </header>
+                    <div className="attachment-preview-inline">
+                      {isImage ? (
+                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="attachment-image-link">
+                          <img src={fileUrl} alt={item.file_name} />
+                        </a>
+                      ) : (
+                        <div className="attachment-file-inline">
+                          <div className="attachment-icon">📄</div>
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="attachment-link"
+                          >
+                            {item.file_name}
+                          </a>
+                        </div>
+                      )}
+                      <a
+                        href={fileUrl}
+                        download={item.file_name}
+                        className="attachment-download-inline"
+                        title="Download"
+                      >
+                        ⬇
+                      </a>
+                    </div>
+                  </article>
+                );
+              } else {
+                return (
+                  <article key={item.id} className="comment-card">
+                    <header className="comment-header">
+                      <span className="comment-author">
+                        {item.author_name || item.author || item.authorName || "Unknown"}
+                      </span>
+                      <span className="comment-date">
+                        {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
+                      </span>
+                    </header>
+                    <p className="comment-text">{item.content || item.text || item.comment || ""}</p>
+                  </article>
+                );
+              }
+            })
           ) : (
-            <div className="empty-thread">No comments yet.</div>
+            <div className="empty-thread">No comments or attachments yet.</div>
           )}
         </section>
 
@@ -447,8 +450,8 @@ function TicketDetails() {
               <div className="comment-toolbar">
                 <div className="toolbar-buttons">
                   <label className="file-upload-btn">
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       ref={fileInputRef}
                       onChange={(e) => setSelectedFile(e.target.files[0])}
                       disabled={commentSubmitting}
@@ -459,8 +462,8 @@ function TicketDetails() {
                   {selectedFile && (
                     <div className="selected-file-badge">
                       <span className="selected-file-name">{selectedFile.name}</span>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="remove-file-btn"
                         onClick={() => {
                           setSelectedFile(null);
@@ -505,7 +508,6 @@ function TicketDetails() {
           <div className="tag-collection">
             <span className="tag-pill">Support</span>
             <span className="tag-pill">{statusLabel}</span>
-            {priorityLabel && <span className="tag-pill">{priorityLabel}</span>}
           </div>
         </div>
 
