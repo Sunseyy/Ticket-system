@@ -34,7 +34,7 @@ jobs:
       - name: Build and Push auth-service
         uses: docker/build-push-action@v5
         with:
-          context: ./Microservices/auth-service
+          context: ./MIcroservices/auth-service
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
