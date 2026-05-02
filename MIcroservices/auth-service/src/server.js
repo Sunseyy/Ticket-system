@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
 
 const app = express();
-
+#
 const config = {
   port: parseInt(process.env.PORT, 10) || 3001,
   corsOrigins: process.env.CORS_ORIGINS
