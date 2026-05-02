@@ -26,24 +26,6 @@ const formatStatusLabel = (status) => {
     .join(" ");
 };
 
-const priorityClassName = (priority) => {
-  const normalized = (priority || "")
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .trim();
-
-  return normalized ? `priority-pill priority-${normalized}` : "priority-pill priority-unknown";
-};
-
-const formatPriorityLabel = (priority) => {
-  if (!priority) return "Unknown";
-  return priority
-    .toLowerCase()
-    .split(/[-_\s]+/)
-    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
-    .join(" ");
-};
-
 const formatDateTime = (value) => {
   if (!value) return "-";
   const parsed = new Date(value);
@@ -322,7 +304,6 @@ function AdminDashboard() {
                     <tr>
                       <th>Ticket</th>
                       <th>Status</th>
-                      <th>Priority</th>
                       <th>Category</th>
                       <th>Assigned To</th>
                       <th>Created</th>
@@ -334,7 +315,6 @@ function AdminDashboard() {
                   <tbody>
                     {tickets.map((ticket) => {
                       const statusKey = normalizeStatus(ticket.status);
-                      const priorityKey = priorityClassName(ticket.priority);
                       return (
                         <tr key={ticket.id}>
                           <td>
@@ -350,9 +330,6 @@ function AdminDashboard() {
                           </td>
                           <td>
                             <span className={statusClassName(statusKey)}>{formatStatusLabel(statusKey)}</span>
-                          </td>
-                          <td>
-                            <span className={priorityKey}>{formatPriorityLabel(ticket.priority)}</span>
                           </td>
                           <td>{ticket.category || <span className="text-muted">-</span>}</td>
                           <td>{ticket.assigned_agent_name || <span className="text-muted">Unassigned</span>}</td>
