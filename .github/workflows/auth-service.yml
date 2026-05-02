@@ -4,11 +4,11 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'auth-service/**'        # Se déclenche SEULEMENT si auth-service change
+      - 'Microservices/auth-service/**'        # Se déclenche SEULEMENT si auth-service change
   pull_request:
     branches: [ "main" ]
     paths:
-      - 'auth-service/**'
+      - 'Microservices/auth-service/**'
 
 jobs:
   build-and-push:
@@ -46,7 +46,7 @@ jobs:
       - name: Build and Push auth-service
         uses: docker/build-push-action@v5
         with:
-          context: ./auth-service
+          context: ./Microservices/auth-service
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
