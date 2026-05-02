@@ -2,12 +2,8 @@ name: CI/CD - auth-service
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - 'Microservices/auth-service/**'
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'Microservices/auth-service/**'
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
