@@ -1,9 +1,14 @@
 name: CI/CD - frontend-ms
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+    paths:
+      - "frontend/**"
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+    paths:
+      - "frontend/**"
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -42,3 +47,12 @@ jobs:
             VITE_API_URL=https://api-gateway-ticket-system.apps.green.tnd.linux
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/sunseyy/frontend-ms:latest
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
