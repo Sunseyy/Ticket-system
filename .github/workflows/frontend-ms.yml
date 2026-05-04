@@ -47,7 +47,12 @@ jobs:
             VITE_API_URL=https://api-gateway-ticket-system.apps.green.tnd.linux
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
+      - name: Login to GHCR for Trivy
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
