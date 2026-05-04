@@ -45,13 +45,31 @@ spec:
       labels:
         app: attachment-service
     spec:
+      # 🔐 Pull from GHCR
+      imagePullSecrets:
+        - name: ghcr-secret
+
+      # 🔐 Pod-level security
       securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
         fsGroup: 1001
+
       containers:
         - name: attachment-service
-          image: sunseyy/attachment-service:latest
+          image: ghcr.io/sunseyy/attachment-service:latest
           ports:
             - containerPort: 3004
+
+          # 🔐 Container-level security
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
           env:
             - name: PORT
               value: "3004"
@@ -73,21 +91,27 @@ spec:
                   key: password
             - name: UPLOAD_DIR
               value: "/uploads"
+
           volumeMounts:
             - name: uploads-storage
               mountPath: /uploads
+            - name: tmp
+              mountPath: /tmp
+
           livenessProbe:
             httpGet:
               path: /health
               port: 3004
             initialDelaySeconds: 15
             periodSeconds: 20
+
           readinessProbe:
             httpGet:
               path: /health
               port: 3004
             initialDelaySeconds: 5
             periodSeconds: 10
+
           resources:
             requests:
               memory: "128Mi"
@@ -95,10 +119,13 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+
       volumes:
         - name: uploads-storage
           persistentVolumeClaim:
             claimName: uploads-pvc
+        - name: tmp
+          emptyDir: {}
 
 ---
 # ─────────────────────────────────────────────
@@ -132,113 +159,3 @@ spec:
     targetPort: 3004
   tls:
     termination: edge
-
----
-# ─────────────────────────────────────────────
-# DATABASE PVC
-# ─────────────────────────────────────────────
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: attachment-db-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-
----
-# ─────────────────────────────────────────────
-# DATABASE INIT CONFIGMAP
-# ─────────────────────────────────────────────
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: attachment-db-initdb
-data:
-  init.sql: |
-    CREATE TABLE IF NOT EXISTS public.attachments (
-      id SERIAL PRIMARY KEY,
-      ticket_id INTEGER NOT NULL,
-      comment_id INTEGER,
-      uploaded_by INTEGER NOT NULL,
-      file_name TEXT NOT NULL,
-      file_path TEXT NOT NULL,
-      file_size INTEGER NOT NULL,
-      content_type TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      deleted_at TIMESTAMP
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_attachments_ticket_id
-    ON public.attachments(ticket_id);
-
----
-# ─────────────────────────────────────────────
-# DATABASE DEPLOYMENT
-# ─────────────────────────────────────────────
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: attachment-db
-  labels:
-    app: attachment-db
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: attachment-db
-  template:
-    metadata:
-      labels:
-        app: attachment-db
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:15-alpine
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_DB
-              value: attachment_db
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: attachment-db-secret
-                  key: username
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: attachment-db-secret
-                  key: password
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
-          volumeMounts:
-            - name: db-storage
-              mountPath: /var/lib/postgresql/data
-            - name: db-init
-              mountPath: /docker-entrypoint-initdb.d
-      volumes:
-        - name: db-storage
-          persistentVolumeClaim:
-            claimName: attachment-db-pvc
-        - name: db-init
-          configMap:
-            name: attachment-db-initdb
-
----
-# ─────────────────────────────────────────────
-# DATABASE SERVICE
-# ─────────────────────────────────────────────
-apiVersion: v1
-kind: Service
-metadata:
-  name: attachment-db
-spec:
-  selector:
-    app: attachment-db
-  ports:
-    - protocol: TCP
-      port: 5432
-      targetPort: 5432
