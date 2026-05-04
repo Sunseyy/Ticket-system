@@ -1,9 +1,14 @@
 name: CI/CD - auth-service
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+    paths:
+      - "MIcroservices/auth-service/**"
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+    paths:
+      - "MIcroservices/auth-service/**"
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -40,3 +45,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/sunseyy/auth-service:latest
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
