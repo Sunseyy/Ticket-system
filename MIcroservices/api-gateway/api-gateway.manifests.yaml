@@ -15,23 +15,52 @@ spec:
       labels:
         app: api-gateway
     spec:
+      # 🔐 Required to pull from ghcr.io
+      imagePullSecrets:
+        - name: ghcr-secret
+
+      # 🔐 Pod-level security
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
       containers:
         - name: api-gateway
-          image: sunseyy/api-gateway:latest
+          image: ghcr.io/sunseyy/api-gateway:latest
           ports:
             - containerPort: 8080
+
+          # 🔐 Container-level security
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+
           livenessProbe:
             httpGet:
               path: /health
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 15
+
           readinessProbe:
             httpGet:
               path: /health
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
+
           resources:
             requests:
               memory: "64Mi"
@@ -39,6 +68,15 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "100m"
+
+      volumes:
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+
 ---
 # ── api-gateway Service ───────────────────────────────────────────────────────
 apiVersion: v1
@@ -52,6 +90,7 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
+
 ---
 # ── Route (main entrypoint for frontend) ─────────────────────────────────────
 apiVersion: route.openshift.io/v1
