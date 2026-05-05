@@ -1,0 +1,261 @@
+# 1. Default Deny All
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: ticket-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# 2. Allow DNS egress (obligatoire pour résolution interne OpenShift)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: ticket-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# 3. API Gateway — accepter trafic depuis la Route OpenShift
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-gateway
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              policy-group.network.openshift.io/ingress: ""
+
+---
+# 4. Auth Service — uniquement depuis api-gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-auth-service-from-gateway
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+
+---
+# 5. Ticket Service — uniquement depuis api-gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ticket-service-from-gateway
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: ticket-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+
+---
+# 6. User Service — uniquement depuis api-gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-user-service-from-gateway
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: user-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+
+---
+# 7. Attachment Service — uniquement depuis api-gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-attachment-service-from-gateway
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: attachment-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+
+---
+# 8. Auth DB — uniquement depuis auth-service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-auth-db-from-auth-service
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: auth-service
+
+---
+# 9. Ticket DB — uniquement depuis ticket-service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ticket-db-from-ticket-service
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: ticket-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: ticket-service
+
+---
+# 10. User DB — uniquement depuis user-service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-user-db-from-user-service
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: user-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: user-service
+
+---
+# 11. Attachment DB — uniquement depuis attachment-service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-attachment-db-from-attachment-service
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: attachment-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: attachment-service
+
+---
+# 12. Egress services → leurs DBs (port 5432 PostgreSQL)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-egress-to-db
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - auth-db
+                  - ticket-db
+                  - user-db
+                  - attachment-db
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# 13. Egress api-gateway → services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-egress-to-services
+  namespace: ticket-system
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - auth-service
+                  - ticket-service
+                  - user-service
+                  - attachment-service
+      ports:
+        - protocol: TCP
+          port: 3001
+        - protocol: TCP
+          port: 3002
+        - protocol: TCP
+          port: 3003
+        - protocol: TCP
+          port: 3004
