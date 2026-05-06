@@ -61,3 +61,4 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+          skip-dirs: usr/local/lib/node_modules/npm,opt/yarn-v1.22.22

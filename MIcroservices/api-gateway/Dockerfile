@@ -1,5 +1,8 @@
 FROM nginx:alpine AS runtime
 
+# Patch CVE-2026-27135
+RUN apk update && apk upgrade --no-cache nghttp2-libs && rm -rf /var/cache/apk/*
+
 RUN rm -f /etc/nginx/conf.d/default.conf
 
 COPY nginx.conf /etc/nginx/nginx.conf
