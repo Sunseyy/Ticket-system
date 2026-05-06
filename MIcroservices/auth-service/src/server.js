@@ -5,36 +5,40 @@ const { Pool } = require("pg");
 
 const app = express();
 
-
+/* ───────────────────── CONFIG ───────────────────── */
 
 const config = {
   port: parseInt(process.env.PORT, 10) || 3001,
   corsOrigins: process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
-    : ["http://localhost:5173", "http://localhost:80", "http://localhost"],
+    ? process.env.CORS_ORIGINS.split(",").map(o => o.trim())
+    : ["http://localhost:5173", "http://localhost", "http://localhost:80"],
   db: {
     host: process.env.DB_HOST || "localhost",
     port: parseInt(process.env.DB_PORT, 10) || 5432,
     database: process.env.DB_NAME || "auth_db",
     user: process.env.DB_USER || "postgres",
     password: process.env.DB_PASSWORD || "postgres",
-  },
+  }
 };
+
+/* ───────────────────── MIDDLEWARE ───────────────────── */
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       if (config.corsOrigins.includes(origin) || config.corsOrigins.includes("*")) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+        return callback(null, true);
       }
+      return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,
+    credentials: true
   })
 );
+
 app.use(express.json());
+
+/* ───────────────────── DATABASE ───────────────────── */
 
 const pool = new Pool({
   ...config.db,
@@ -43,57 +47,100 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// ─── Health check ───────────────────────────────────────────────────────────
+/* ───────────────────── ROUTES ───────────────────── */
+
+// Health
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy", service: "auth-service", timestamp: new Date().toISOString() });
+  res.json({
+    status: "healthy",
+    service: "auth-service",
+    timestamp: new Date().toISOString()
+  });
 });
 
-// ─── REGISTER ────────────────────────────────────────────────────────────────
+/* ───── REGISTER ───── */
 app.post("/register", async (req, res) => {
   const { full_name, email, password, role, societyId } = req.body;
 
   if (!full_name || !email || !password || !role) {
-    return res.status(400).json({ error: "full_name, email, password and role are required" });
+    return res.status(400).json({
+      error: "full_name, email, password and role are required"
+    });
   }
 
   const allowedRoles = ["CLIENT", "AGENT", "ADMIN"];
   if (!allowedRoles.includes(role.toUpperCase())) {
-    return res.status(400).json({ error: "Invalid role. Must be CLIENT, AGENT or ADMIN" });
+    return res.status(400).json({
+      error: "Invalid role. Must be CLIENT, AGENT or ADMIN"
+    });
   }
 
   try {
-    const hash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (full_name, email, password_hash, role, society_id)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, role`,
-      [full_name, email.trim().toLowerCase(), hash, role.toUpperCase(), societyId || null]
+      `
+      INSERT INTO users (full_name, email, password_hash, role, society_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, email, role
+      `,
+      [
+        full_name,
+        email.trim().toLowerCase(),
+        passwordHash,
+        role.toUpperCase(),
+        societyId || null
+      ]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newUser = result.rows[0];
+
+    // 🔯োগ Optional sync with user-service (non-blocking)
+    try {
+      await fetch("http://user-service:3003/internal/sync-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: newUser.id,
+          full_name,
+          role: role.toUpperCase(),
+          society_id: societyId || null
+        })
+      });
+    } catch (err) {
+      console.warn("⚠️ user-service sync failed:", err.message);
+    }
+
+    res.status(201).json(newUser);
+
   } catch (err) {
     console.error("Register error:", err);
+
     if (err.code === "23505") {
       return res.status(400).json({ error: "Email already exists" });
     }
+
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ─── LOGIN ───────────────────────────────────────────────────────────────────
+/* ───── LOGIN ───── */
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
+    return res.status(400).json({
+      error: "Email and password are required"
+    });
   }
 
   try {
     const result = await pool.query(
-      `SELECT id, full_name, email, password_hash, role, society_id
-       FROM users
-       WHERE email = $1 AND deleted_at IS NULL`,
+      `
+      SELECT id, full_name, email, password_hash, role, society_id
+      FROM users
+      WHERE email = $1 AND deleted_at IS NULL
+      `,
       [email.trim().toLowerCase()]
     );
 
@@ -102,101 +149,28 @@ app.post("/login", async (req, res) => {
     }
 
     const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt.compare(password, user.password_hash);
 
-    if (!match) {
+    if (!valid) {
       return res.status(400).json({ error: "Invalid email or password" });
     }
 
-    const { password_hash, ...userData } = user;
-    res.json(userData);
+    const { password_hash, ...safeUser } = user;
+    res.json(safeUser);
+
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
-// ─── REGISTER ────────────────────────────────────────────────────────────────
-// ─── REGISTER ────────────────────────────────────────────────────────────────
-app.post("/register", async (req, res) => {
-  const { full_name, email, password, role, societyId } = req.body;
 
-  if (!full_name || !email || !password || !role) {
-    return res.status(400).json({ error: "full_name, email, password and role are required" });
-  }
+/* ───────────────────── SERVER ───────────────────── */
 
-  const allowedRoles = ["CLIENT", "AGENT", "ADMIN"];
-  if (!allowedRoles.includes(role.toUpperCase())) {
-    return res.status(400).json({ error: "Invalid role. Must be CLIENT, AGENT or ADMIN" });
-  }
-
-  try {
-    const hash = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      `INSERT INTO users (full_name, email, password_hash, role, society_id)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, role`,
-      [full_name, email.trim().toLowerCase(), hash, role.toUpperCase(), societyId || null]
-    );
-
-    const newUser = result.rows[0];
-
-    // ── Sync to user-service ──
-    try {
-      await fetch(`http://user-service:3003/internal/sync-user`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: newUser.id,
-          full_name,
-          role: role.toUpperCase(),
-          society_id: societyId || null
-        })
-      });
-    } catch (syncErr) {
-      console.warn("Sync to user-service failed (non-blocking):", syncErr.message);
-    }
-
-    res.status(201).json(newUser);
-  } catch (err) {
-    console.error("Register error:", err);
-    if (err.code === "23505") {
-      return res.status(400).json({ error: "Email already exists" });
-    }
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-    // ── Sync to user-service ──
-    try {
-      await fetch(`http://user-service:3003/internal/sync-user`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: newUser.id,
-          full_name,
-          role: role.toUpperCase(),
-          society_id: societyId || null
-        })
-      });
-    } catch (syncErr) {
-      console.warn("Sync to user-service failed (non-blocking):", syncErr.message);
-    }
-
-    res.status(201).json(newUser);
-  } catch (err) {
-    console.error("Register error:", err);
-    if (err.code === "23505") {
-      return res.status(400).json({ error: "Email already exists" });
-    }
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ─── Graceful shutdown ───────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(`✅ auth-service running on port ${config.port}`);
 });
+
+/* ───────────────────── SHUTDOWN ───────────────────── */
 
 const shutdown = (signal) => {
   console.log(`${signal} received — shutting down`);
