@@ -123,7 +123,7 @@ spec:
       volumes:
         - name: uploads-storage
           persistentVolumeClaim:
-            claimName: uploads-pvc
+            claimName: attachment-uploads-pvc
         - name: tmp
           emptyDir: {}
 
