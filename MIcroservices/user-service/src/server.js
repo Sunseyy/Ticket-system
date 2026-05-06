@@ -211,7 +211,7 @@ app.delete("/companies/:id", async (req, res) => {
 });
 /// ─── INTERNAL: Sync user to user-db AND ticket-service ───────────────────────
 app.post("/internal/sync-user", async (req, res) => {
-  const { id, full_name, role, society_id } = req.body;
+  const { id, full_name, email, role, society_id } = req.body;
   if (!id || !full_name || !role) {
     return res.status(400).json({ error: "id, full_name and role are required" });
   }
