@@ -13,6 +13,7 @@ export default function CreateTicket() {
     title: "",
     description: "",
     product: "",
+    priority: "Low",
     category: "",
     urgency: "",
     department: "",
@@ -156,6 +157,20 @@ export default function CreateTicket() {
               <option value="">Select a product</option>
               <option value="Fortinet">Fortinet</option>
               <option value="Cisco">Cisco</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Priority:</label>
+            <select
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              className="form-input"
+            >
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
             </select>
           </div>
 

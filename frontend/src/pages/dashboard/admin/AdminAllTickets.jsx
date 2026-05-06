@@ -27,6 +27,26 @@ const formatStatusLabel = (status) => {
     .join(" ");
 };
 
+const normalizePriority = (priority) =>
+  (priority || "")
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .trim();
+
+const priorityClassName = (priority) => {
+  const normalized = normalizePriority(priority) || "unknown";
+  return `priority-pill priority-${normalized}`;
+};
+
+const formatPriorityLabel = (priority) => {
+  const normalized = normalizePriority(priority);
+  if (!normalized) return "Unknown";
+  return normalized
+    .split("-")
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
+};
+
 const formatDateTime = (value) => {
   if (!value) return "-";
   const parsed = new Date(value);
@@ -50,6 +70,7 @@ function AdminAllTickets() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
   const [assignmentFilter, setAssignmentFilter] = useState("all");
   const [assignments, setAssignments] = useState({});
   const [assigningId, setAssigningId] = useState(null);
@@ -60,6 +81,17 @@ function AdminAllTickets() {
     const unique = new Set();
     tickets.forEach((ticket) => {
       const normalized = normalizeStatus(ticket.status);
+      if (normalized) {
+        unique.add(normalized);
+      }
+    });
+    return Array.from(unique).sort();
+  }, [tickets]);
+
+  const priorityOptions = useMemo(() => {
+    const unique = new Set();
+    tickets.forEach((ticket) => {
+      const normalized = normalizePriority(ticket.priority);
       if (normalized) {
         unique.add(normalized);
       }
@@ -81,6 +113,7 @@ function AdminAllTickets() {
         ticket.product,
         ticket.created_by_name,
         ticket.assigned_agent_name,
+        ticket.priority,
         ticket.status,
       ]
         .filter(Boolean)
@@ -92,6 +125,11 @@ function AdminAllTickets() {
     const matchesStatus = (ticket) => {
       if (statusFilter === "all") return true;
       return normalizeStatus(ticket.status) === statusFilter;
+    };
+
+    const matchesPriority = (ticket) => {
+      if (priorityFilter === "all") return true;
+      return normalizePriority(ticket.priority) === priorityFilter;
     };
 
     const matchesAssignment = (ticket) => {
@@ -106,7 +144,7 @@ function AdminAllTickets() {
     };
 
     return tickets
-      .filter((ticket) => matchesSearch(ticket) && matchesStatus(ticket) && matchesAssignment(ticket))
+      .filter((ticket) => matchesSearch(ticket) && matchesStatus(ticket) && matchesPriority(ticket) && matchesAssignment(ticket))
       .sort((a, b) => {
         const left = new Date(a.updated_at || a.created_at || 0).getTime();
         const right = new Date(b.updated_at || b.created_at || 0).getTime();
@@ -289,6 +327,17 @@ function AdminAllTickets() {
             </select>
           </label>
           <label>
+            Priority
+            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
+              <option value="all">All</option>
+              {priorityOptions.map((priority) => (
+                <option key={priority} value={priority}>
+                  {formatPriorityLabel(priority)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             Assignment
             <select
               value={assignmentFilter}
@@ -314,6 +363,7 @@ function AdminAllTickets() {
                 <th>Ticket</th>
                 <th>Client</th>
                 <th>Status</th>
+                <th>Priority</th>
                 <th>Assignment</th>
                 <th>Product</th>
                 <th>Department</th>
@@ -337,6 +387,11 @@ function AdminAllTickets() {
                   <td>
                     <span className={statusClassName(ticket.status)}>
                       {formatStatusLabel(ticket.status)}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={priorityClassName(ticket.priority)}>
+                      {formatPriorityLabel(ticket.priority)}
                     </span>
                   </td>
                   <td>
