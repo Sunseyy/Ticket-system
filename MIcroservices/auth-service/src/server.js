@@ -103,6 +103,7 @@ app.post("/register", async (req, res) => {
         body: JSON.stringify({
           id: newUser.id,
           full_name,
+          email: email.trim().toLowerCase(),
           role: role.toUpperCase(),
           society_id: societyId || null
         })
