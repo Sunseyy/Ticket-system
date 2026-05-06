@@ -14,30 +14,14 @@ spec:
       labels:
         app: frontend-ms
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
       containers:
         - name: frontend-ms
-          image: ghcr.io/sunseyy/frontend-ms:latest
+          image: sunseyy/ticketing-frontend-ms:latest
           ports:
-            - containerPort: 8080
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-          volumeMounts:
-            - name: cache
-              mountPath: /var/cache/nginx
-            - name: run
-              mountPath: /var/run
-            - name: tmp
-              mountPath: /tmp
+            - containerPort: 80
+          env:
+            - name: VITE_API_URL
+              value: "https://api-gateway-ticket-system.apps.green.tnd.linux"
           resources:
             requests:
               memory: "64Mi"
@@ -45,13 +29,6 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "100m"
-      volumes:
-        - name: cache
-          emptyDir: {}
-        - name: run
-          emptyDir: {}
-        - name: tmp
-          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -62,8 +39,8 @@ spec:
     app: frontend-ms
   ports:
     - protocol: TCP
-      port: 8080
-      targetPort: 8080
+      port: 80
+      targetPort: 80
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -74,6 +51,6 @@ spec:
     kind: Service
     name: frontend-ms
   port:
-    targetPort: 8080
+    targetPort: 80
   tls:
     termination: edge
