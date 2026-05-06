@@ -69,3 +69,28 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+
+
+
+      # 8️⃣ Extract Tags for Frontend-MS
+      - name: Extract metadata for Frontend-MS
+        id: meta-frontend-ms
+        uses: docker/metadata-action@v5
+        with:
+          images: sunseyy/ticketing-frontend-ms
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+
+      # 9️⃣ Build and Push Frontend-MS
+      - name: Build and Push Frontend-MS
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-frontend-ms.outputs.tags }}
+          build-args: |
+            VITE_API_URL=https://api-gateway-ticket-system.apps.green.tnd.linux
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
