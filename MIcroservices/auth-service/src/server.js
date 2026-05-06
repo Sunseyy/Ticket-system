@@ -167,6 +167,32 @@ app.post("/register", async (req, res) => {
   }
 });
 
+    // ── Sync to user-service ──
+    try {
+      await fetch(`http://user-service:3003/internal/sync-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: newUser.id,
+          full_name,
+          role: role.toUpperCase(),
+          society_id: societyId || null
+        })
+      });
+    } catch (syncErr) {
+      console.warn("Sync to user-service failed (non-blocking):", syncErr.message);
+    }
+
+    res.status(201).json(newUser);
+  } catch (err) {
+    console.error("Register error:", err);
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ─── Graceful shutdown ───────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(`✅ auth-service running on port ${config.port}`);
