@@ -116,6 +116,7 @@ app.post("/login", async (req, res) => {
   }
 });
 // ─── REGISTER ────────────────────────────────────────────────────────────────
+// ─── REGISTER ────────────────────────────────────────────────────────────────
 app.post("/register", async (req, res) => {
   const { full_name, email, password, role, societyId } = req.body;
 
@@ -140,7 +141,7 @@ app.post("/register", async (req, res) => {
 
     const newUser = result.rows[0];
 
-    // ── Sync to ticket-service DB via user-service ──
+    // ── Sync to user-service ──
     try {
       await fetch(`http://user-service:3003/internal/sync-user`, {
         method: "POST",
