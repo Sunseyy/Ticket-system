@@ -18,7 +18,6 @@ const config = {
   },
 };
 
-
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -209,24 +208,26 @@ app.delete("/companies/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to delete company" });
   }
 });
-/// ─── INTERNAL: Sync user to user-db AND ticket-service ───────────────────────
+
+// ─── INTERNAL: Sync user to user-db AND ticket-service ───────────────────────
 app.post("/internal/sync-user", async (req, res) => {
   const { id, full_name, email, role, society_id } = req.body;
-  if (!id || !full_name || !role) {
-    return res.status(400).json({ error: "id, full_name and role are required" });
+  if (!id || !full_name || !email || !role) {
+    return res.status(400).json({ error: "id, full_name, email and role are required" });
   }
 
   // 1️⃣ Write to user-db
   try {
     await pool.query(
-      `INSERT INTO users (id, full_name, role, society_id)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO users (id, full_name, email, role, society_id)
+       VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (id)
        DO UPDATE SET
          full_name = EXCLUDED.full_name,
+         email = EXCLUDED.email,
          role = EXCLUDED.role,
          society_id = EXCLUDED.society_id`,
-      [id, full_name, role, society_id || null]
+      [id, full_name, email, role, society_id || null]
     );
   } catch (err) {
     console.error("Failed to insert/update user:", err);
@@ -246,6 +247,7 @@ app.post("/internal/sync-user", async (req, res) => {
 
   res.json({ ok: true });
 });
+
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(`✅ user-service running on port ${config.port}`);
