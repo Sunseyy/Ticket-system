@@ -16,12 +16,9 @@ spec:
     spec:
       containers:
         - name: frontend-ms
-          image: sunseyy/ticketing-frontend-ms:latest
+          image: ghcr.io/sunseyy/frontend-ms:latest
           ports:
-            - containerPort: 80
-          env:
-            - name: VITE_API_URL
-              value: "https://api-gateway-ticket-system.apps.green.tnd.linux"
+            - containerPort: 8080
           resources:
             requests:
               memory: "64Mi"
@@ -40,7 +37,7 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 80
+      targetPort: 8080
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -51,6 +48,6 @@ spec:
     kind: Service
     name: frontend-ms
   port:
-    targetPort: 80
+    targetPort: 8080
   tls:
     termination: edge

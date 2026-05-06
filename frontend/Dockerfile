@@ -25,7 +25,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 RUN chown -R nginx:nginx /usr/share/nginx/html \
     && chmod -R g+rwX /usr/share/nginx/html \
     && chown -R nginx:nginx /var/cache/nginx /var/log/nginx /etc/nginx \
-    && chmod -R g+rwX /var/cache/nginx /var/log/nginx /var/run
+    && chmod -R g+rwX /var/cache/nginx /var/log/nginx /var/run&& chmod -R g+rwX /var/cache/nginx /var/log/nginx /var/run chmod -R g+rwX /var/cache/nginx /var/log/nginx /var/run \
+    && chmod 777 /run
 
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
