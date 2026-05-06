@@ -209,6 +209,7 @@ app.delete("/companies/:id", async (req, res) => {
   }
 });
 // ─── INTERNAL: Sync user to ticket-service ────────────────────────────────────
+// ─── INTERNAL: Sync user to ticket-service ────────────────────────────────────
 app.post("/internal/sync-user", async (req, res) => {
   const { id, full_name, role, society_id } = req.body;
   if (!id || !full_name || !role) {
