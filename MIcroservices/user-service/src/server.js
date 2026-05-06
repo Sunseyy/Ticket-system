@@ -209,20 +209,36 @@ app.delete("/companies/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to delete company" });
   }
 });
-// ─── INTERNAL: Sync user to ticket-service ────────────────────────────────────
-// ─── INTERNAL: Sync user to ticket-service ────────────────────────────────────
+/// ─── INTERNAL: Sync user to user-db AND ticket-service ───────────────────────
 app.post("/internal/sync-user", async (req, res) => {
   const { id, full_name, role, society_id } = req.body;
   if (!id || !full_name || !role) {
     return res.status(400).json({ error: "id, full_name and role are required" });
   }
 
-  // Sync to ticket-db via ticket-service internal endpoint
+  // 1️⃣ Write to user-db
+  try {
+    await pool.query(
+      `INSERT INTO users (id, full_name, role, society_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id)
+       DO UPDATE SET
+         full_name = EXCLUDED.full_name,
+         role = EXCLUDED.role,
+         society_id = EXCLUDED.society_id`,
+      [id, full_name, role, society_id || null]
+    );
+  } catch (err) {
+    console.error("Failed to insert/update user:", err);
+    return res.status(500).json({ error: "Failed to sync user" });
+  }
+
+  // 2️⃣ Forward to ticket-service (non-blocking)
   try {
     await fetch(`http://ticket-service:3002/internal/sync-user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, full_name, role })
+      body: JSON.stringify({ id, full_name, role }),
     });
   } catch (err) {
     console.warn("Sync to ticket-service failed:", err.message);
