@@ -18,6 +18,7 @@ const config = {
   },
 };
 
+
 app.use(
   cors({
     origin: (origin, callback) => {
