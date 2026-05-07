@@ -455,7 +455,7 @@
 
 .attachment-preview {
   width: 100%;
-  max-height: 400px;
+  max-height: 250px;
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
@@ -588,6 +588,17 @@
 
 .remove-file-btn:hover {
   opacity: 1;
+}
+
+.file-error-message {
+  display: inline-block;
+  padding: 8px 12px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #b91c1c;
+  font-weight: 500;
 }
 
 @media (max-width: 1200px) {

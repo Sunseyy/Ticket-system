@@ -4,6 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import { API_URL } from "../../config/api";
 import "./TicketDetails.css";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
 function TicketDetails() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ function TicketDetails() {
   const [comments, setComments] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState("");
   const fileInputRef = useRef(null);
 
   const [newComment, setNewComment] = useState("");
@@ -84,6 +87,20 @@ function TicketDetails() {
     if (userRole === "CLIENT" && !isTicketOwner) return "Only the ticket owner can comment.";
     return "";
   })();
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        setFileError(`File is too large. Maximum size is 5 MB. Your file is ${Math.round(file.size / 1024 / 1024 * 100) / 100} MB.`);
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      } else {
+        setFileError("");
+        setSelectedFile(file);
+      }
+    }
+  };
 
   const canUpdateStatus = Boolean(ticket) && (isAssignedAgent || userRole === "ADMIN");
   const statusOptions = [
@@ -365,16 +382,55 @@ function TicketDetails() {
           </section>
         )}
 
-        {/* Attachments Display Section */}
-        {attachments.length > 0 && (
-          <section className="attachments-card">
-            <h2>Attachments</h2>
-            <div className="attachments-grid">
-              {attachments.map((file) => {
+        {/* Combined Conversation Thread */}
+        <section className="comments-thread">
+          <h2>Conversation</h2>
+          {(() => {
+            // Combine comments and attachments with type indicators
+            const commentItems = comments.map(c => ({
+              id: `comment-${c.id}`,
+              type: 'comment',
+              created_at: c.created_at,
+              data: c
+            }));
+            
+            const attachmentItems = attachments.map(file => ({
+              id: `attachment-${file.id}`,
+              type: 'attachment',
+              created_at: file.created_at,
+              data: file
+            }));
+            
+            const allItems = [...commentItems, ...attachmentItems].sort((a, b) => {
+              return new Date(a.created_at) - new Date(b.created_at);
+            });
+            
+            if (allItems.length === 0) {
+              return <div className="empty-thread">No comments or attachments yet.</div>;
+            }
+            
+            return allItems.map(item => {
+              if (item.type === 'comment') {
+                const c = item.data;
+                return (
+                  <article key={item.id} className="comment-card">
+                    <header className="comment-header">
+                      <span className="comment-author">
+                        {c.author_name || c.author || c.authorName || "Unknown"}
+                      </span>
+                      <span className="comment-date">
+                        {c.created_at ? new Date(c.created_at).toLocaleString() : ""}
+                      </span>
+                    </header>
+                    <p className="comment-text">{c.content || c.text || c.comment || ""}</p>
+                  </article>
+                );
+              } else {
+                const file = item.data;
                 const isImage = file.content_type?.startsWith('image/');
                 const fileUrl = `${API_URL}${file.file_path}`;
                 return (
-                  <div key={file.id} className="attachment-item">
+                  <div key={item.id} className="attachment-item">
                     {isImage ? (
                       <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="attachment-preview">
                         <img src={fileUrl} alt={file.file_name} />
@@ -407,30 +463,9 @@ function TicketDetails() {
                     </a>
                   </div>
                 );
-              })}
-            </div>
-          </section>
-        )}
-
-        <section className="comments-thread">
-          <h2>Conversation</h2>
-          {Array.isArray(comments) && comments.length > 0 ? (
-            comments.map((c) => (
-              <article key={c.id} className="comment-card">
-                <header className="comment-header">
-                  <span className="comment-author">
-                    {c.author_name || c.author || c.authorName || "Unknown"}
-                  </span>
-                  <span className="comment-date">
-                    {c.created_at ? new Date(c.created_at).toLocaleString() : ""}
-                  </span>
-                </header>
-                <p className="comment-text">{c.content || c.text || c.comment || ""}</p>
-              </article>
-            ))
-          ) : (
-            <div className="empty-thread">No comments yet.</div>
-          )}
+              }
+            });
+          })()}
         </section>
 
         <section className="reply-panel">
@@ -450,7 +485,7 @@ function TicketDetails() {
                     <input 
                       type="file" 
                       ref={fileInputRef}
-                      onChange={(e) => setSelectedFile(e.target.files[0])}
+                      onChange={handleFileSelect}
                       disabled={commentSubmitting}
                       className="file-input-hidden"
                     />
@@ -471,6 +506,7 @@ function TicketDetails() {
                       </button>
                     </div>
                   )}
+                  {fileError && <div className="file-error-message">{fileError}</div>}
                 </div>
                 <div className="toolbar-actions">
                   <button type="submit" className="primary-button" disabled={commentSubmitting || (!newComment.trim() && !selectedFile)}>
