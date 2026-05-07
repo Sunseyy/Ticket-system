@@ -83,12 +83,10 @@ app.get("/tickets", async (req, res) => {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
                 t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
-                u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
-                p.name AS product_name, p.vendor AS product_vendor
+                u.full_name AS created_by_name, a.full_name AS assigned_agent_name
          FROM tickets t
          JOIN users u ON t.created_by = u.id
          LEFT JOIN users a ON t.assigned_agent_id = a.id
-         LEFT JOIN products p ON t.product_id = p.id
          WHERE t.created_by = $1 AND t.deleted_at IS NULL
          ORDER BY t.created_at DESC`,
         [userId]
@@ -97,26 +95,23 @@ app.get("/tickets", async (req, res) => {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
                 t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
-                u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
-                p.name AS product_name, p.vendor AS product_vendor
+                u.full_name AS created_by_name, a.full_name AS assigned_agent_name
          FROM tickets t
          JOIN users u ON t.created_by = u.id
          LEFT JOIN users a ON t.assigned_agent_id = a.id
-         LEFT JOIN products p ON t.product_id = p.id
          WHERE (t.assigned_agent_id = $1 OR t.assigned_agent_id IS NULL) AND t.deleted_at IS NULL
          ORDER BY t.created_at DESC`,
         [userId]
       );
     } else {
+      // ADMIN — all tickets
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
                 t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
-                u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
-                p.name AS product_name, p.vendor AS product_vendor
+                u.full_name AS created_by_name, a.full_name AS assigned_agent_name
          FROM tickets t
          JOIN users u ON t.created_by = u.id
          LEFT JOIN users a ON t.assigned_agent_id = a.id
-         LEFT JOIN products p ON t.product_id = p.id
          WHERE t.deleted_at IS NULL
          ORDER BY t.created_at DESC
          LIMIT 50`
@@ -134,12 +129,10 @@ app.get("/tickets/latest", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT t.id, t.title, t.status, t.priority, t.created_at, t.product_id,
-              u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
-              p.name AS product_name, p.vendor AS product_vendor
+              u.full_name AS created_by_name, a.full_name AS assigned_agent_name
        FROM tickets t
        JOIN users u ON t.created_by = u.id
        LEFT JOIN users a ON t.assigned_agent_id = a.id
-       LEFT JOIN products p ON t.product_id = p.id
        WHERE t.deleted_at IS NULL
        ORDER BY t.created_at DESC
        LIMIT 5`
@@ -158,13 +151,10 @@ app.get("/tickets/:id", async (req, res) => {
     const result = await pool.query(
       `SELECT t.id, t.title, t.description, t.status, t.priority, t.urgency,
               t.created_at, t.updated_at, t.created_by, t.assigned_agent_id, t.product_id,
-              u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
-              p.id AS product_id, p.name AS product_name, p.vendor AS product_vendor,
-              p.category AS product_category, p.specification AS product_specification
+              u.full_name AS created_by_name, a.full_name AS assigned_agent_name
        FROM tickets t
        JOIN users u ON t.created_by = u.id
        LEFT JOIN users a ON t.assigned_agent_id = a.id
-       LEFT JOIN products p ON t.product_id = p.id
        WHERE t.id = $1 AND t.deleted_at IS NULL`,
       [id]
     );
@@ -349,6 +339,7 @@ app.post("/tickets/:id/comments", async (req, res) => {
     res.status(500).json({ error: "Failed to add comment" });
   }
 });
+
 // ─── INTERNAL: Sync user from auth/user service ───────────────────────────────
 app.post("/internal/sync-user", async (req, res) => {
   const { id, full_name, role } = req.body;
@@ -368,6 +359,7 @@ app.post("/internal/sync-user", async (req, res) => {
     res.status(500).json({ error: "Failed to sync user" });
   }
 });
+
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(`✅ ticket-service running on port ${config.port}`);
