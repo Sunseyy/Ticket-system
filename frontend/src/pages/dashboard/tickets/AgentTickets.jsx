@@ -227,17 +227,12 @@ function AgentTickets() {
                 return (
                   <tr key={ticket.id}>
                     <td>
-                      <div className="ticket-cell">
-                        <div className="status-indicator" style={{ backgroundColor: statusColor }}></div>
-                        <div className="ticket-info">
-                          <div className="ticket-title">{ticket.title || "Untitled"}</div>
-                          {ticket.description && (
-                            <div className="ticket-description" title={ticket.description}>
-                              {ticket.description.substring(0, 80)}...
-                            </div>
-                          )}
+                      <div className="ticket-title">{ticket.title || "Untitled"}</div>
+                      {ticket.description && (
+                        <div className="ticket-description" title={ticket.description}>
+                          {ticket.description.substring(0, 80)}...
                         </div>
-                      </div>
+                      )}
                     </td>
                     <td>{ticket.created_by_name || "Unknown"}</td>
                     <td>{formatDateTime(ticket.updated_at || ticket.created_at)}</td>

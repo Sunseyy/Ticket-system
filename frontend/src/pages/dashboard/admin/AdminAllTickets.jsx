@@ -377,88 +377,83 @@ function AdminAllTickets() {
                 const statusKey = normalizeStatus(ticket.status);
                 const statusColor = statusKey === "closed" ? "#dc2626" : statusKey === "open" ? "#16a34a" : "#2563eb";
                 return (
-                <tr key={ticket.id}>
-                  <td>
-                    <div className="ticket-cell">
-                      <div className="status-indicator" style={{ backgroundColor: statusColor }}></div>
-                      <div className="ticket-info">
-                        <div className="ticket-title">{ticket.title || "Untitled"}</div>
-                        {ticket.description && (
-                          <div className="ticket-description" title={ticket.description}>
-                            {ticket.description.substring(0, 80)}...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td>{ticket.created_by_name || <span className="text-muted">Unknown</span>}</td>
-                  <td>
-                    <span className={statusClassName(ticket.status)}>
-                      {formatStatusLabel(ticket.status)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={priorityClassName(ticket.priority)}>
-                      {formatPriorityLabel(ticket.priority)}
-                    </span>
-                  </td>
-                  <td>
-                    {ticket.assigned_agent_name ? (
-                      ticket.assigned_agent_name
-                    ) : (
-                      <span className="text-muted">Unassigned</span>
-                    )}
-                  </td>
-                  <td>{ticket.product || <span className="text-muted">-</span>}</td>
-                  <td>{ticket.department || <span className="text-muted">-</span>}</td>
-                  <td>{formatDateTime(ticket.updated_at || ticket.created_at)}</td>
-                  <td>{formatDateTime(ticket.created_at)}</td>
-                  <td className="actions-column">
-                    <div className="admin-action-group">
-                      <div className="assign-controls">
-                        <select
-                          className="assign-select"
-                          value={resolveSelectValue(ticket)}
-                          onChange={(event) =>
-                            setAssignments((prev) => ({
-                              ...prev,
-                              [ticket.id]: event.target.value,
-                            }))
-                          }
-                          disabled={assigningId === ticket.id || agentsLoading}
-                        >
-                          <option value="">Select agent</option>
-                          {agents.map((agent) => (
-                            <option key={agent.id} value={agent.id}>
-                              {agent.full_name}
-                            </option>
-                          ))}
-                        </select>
+                  <tr key={ticket.id}>
+                    <td>
+                      <div className="ticket-title">{ticket.title || "Untitled"}</div>
+                      {ticket.description && (
+                        <div className="ticket-description" title={ticket.description}>
+                          {ticket.description.substring(0, 80)}...
+                        </div>
+                      )}
+                    </td>
+                    <td>{ticket.created_by_name || <span className="text-muted">Unknown</span>}</td>
+                    <td>
+                      <span className={statusClassName(ticket.status)}>
+                        {formatStatusLabel(ticket.status)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={priorityClassName(ticket.priority)}>
+                        {formatPriorityLabel(ticket.priority)}
+                      </span>
+                    </td>
+                    <td>
+                      {ticket.assigned_agent_name ? (
+                        ticket.assigned_agent_name
+                      ) : (
+                        <span className="text-muted">Unassigned</span>
+                      )}
+                    </td>
+                    <td>{ticket.product || <span className="text-muted">-</span>}</td>
+                    <td>{ticket.department || <span className="text-muted">-</span>}</td>
+                    <td>{formatDateTime(ticket.updated_at || ticket.created_at)}</td>
+                    <td>{formatDateTime(ticket.created_at)}</td>
+                    <td className="actions-column">
+                      <div className="admin-action-group">
+                        <div className="assign-controls">
+                          <select
+                            className="assign-select"
+                            value={resolveSelectValue(ticket)}
+                            onChange={(event) =>
+                              setAssignments((prev) => ({
+                                ...prev,
+                                [ticket.id]: event.target.value,
+                              }))
+                            }
+                            disabled={assigningId === ticket.id || agentsLoading}
+                          >
+                            <option value="">Select agent</option>
+                            {agents.map((agent) => (
+                              <option key={agent.id} value={agent.id}>
+                                {agent.full_name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            className="admin-btn admin-btn--assign"
+                            onClick={() => handleAssign(ticket.id)}
+                            disabled={assigningId === ticket.id || agentsLoading}
+                          >
+                            {assigningId === ticket.id ? "Assigning..." : "Assign"}
+                          </button>
+                        </div>
                         <button
-                          className="admin-btn admin-btn--assign"
-                          onClick={() => handleAssign(ticket.id)}
-                          disabled={assigningId === ticket.id || agentsLoading}
+                          className="admin-btn admin-btn--view"
+                          onClick={() => handleOpenTicket(ticket.id)}
                         >
-                          {assigningId === ticket.id ? "Assigning..." : "Assign"}
+                          View
+                        </button>
+                        <button
+                          className="admin-btn admin-btn--danger"
+                          onClick={() => handleDelete(ticket.id)}
+                          disabled={deletingId === ticket.id}
+                        >
+                          {deletingId === ticket.id ? "Deleting..." : "Delete"}
                         </button>
                       </div>
-                      <button
-                        className="admin-btn admin-btn--view"
-                        onClick={() => handleOpenTicket(ticket.id)}
-                      >
-                        View
-                      </button>
-                      <button
-                        className="admin-btn admin-btn--danger"
-                        onClick={() => handleDelete(ticket.id)}
-                        disabled={deletingId === ticket.id}
-                      >
-                        {deletingId === ticket.id ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
+                    </td>
+                  </tr>
+                );
               })}
             </tbody>
           </table>

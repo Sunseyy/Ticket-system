@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 24px;
   padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
 }
 
 .client-tickets-header {
@@ -17,6 +18,8 @@
   font-size: 28px;
   font-weight: 700;
   color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  letter-spacing: -0.5px;
 }
 
 .client-tickets-subtitle {
@@ -157,24 +160,7 @@
   color: #94a3b8;
 }
 
-.ticket-cell {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
 
-.status-indicator {
-  min-width: 16px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.ticket-info {
-  flex: 1;
-}
 
 .status-pill {
   display: inline-flex;
