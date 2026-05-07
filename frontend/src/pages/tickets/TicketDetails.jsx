@@ -10,7 +10,7 @@ function TicketDetails() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState(null);
-  
+
   const [comments, setComments] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -185,10 +185,10 @@ function TicketDetails() {
       setTicket((prev) =>
         prev
           ? {
-              ...prev,
-              status: data.status || statusDraft,
-              updated_at: data.updated_at || prev.updated_at,
-            }
+            ...prev,
+            status: data.status || statusDraft,
+            updated_at: data.updated_at || prev.updated_at,
+          }
           : prev
       );
       setStatusFeedback("Status updated successfully.");
@@ -248,7 +248,7 @@ function TicketDetails() {
         assigned_agent_id: updatedTicket.assigned_agent_id,
         assigned_agent_name: user.full_name || user.name,
       }));
-      
+
     } catch (err) {
       console.error("Assignment error:", err);
       alert("Could not assign ticket to you.");
@@ -335,9 +335,9 @@ function TicketDetails() {
               </button>
             )}
             {userRole === "AGENT" && !isAssignedAgent && (
-              <button 
-                type="button" 
-                className="primary-button" 
+              <button
+                type="button"
+                className="primary-button"
                 onClick={handleAssignToMe}
               >
                 Claim Ticket
@@ -393,22 +393,22 @@ function TicketDetails() {
               created_at: c.created_at,
               data: c
             }));
-            
+
             const attachmentItems = attachments.map(file => ({
               id: `attachment-${file.id}`,
               type: 'attachment',
               created_at: file.created_at,
               data: file
             }));
-            
+
             const allItems = [...commentItems, ...attachmentItems].sort((a, b) => {
               return new Date(a.created_at) - new Date(b.created_at);
             });
-            
+
             if (allItems.length === 0) {
               return <div className="empty-thread">No comments or attachments yet.</div>;
             }
-            
+
             return allItems.map(item => {
               if (item.type === 'comment') {
                 const c = item.data;
@@ -441,9 +441,9 @@ function TicketDetails() {
                       </div>
                     )}
                     <div className="attachment-info">
-                      <a 
-                        href={fileUrl} 
-                        target="_blank" 
+                      <a
+                        href={fileUrl}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="attachment-name"
                       >
@@ -453,8 +453,8 @@ function TicketDetails() {
                         {Math.round(file.file_size / 1024)} KB
                       </span>
                     </div>
-                    <a 
-                      href={fileUrl} 
+                    <a
+                      href={fileUrl}
                       download={file.file_name}
                       className="attachment-download"
                       title="Download"
@@ -482,8 +482,8 @@ function TicketDetails() {
               <div className="comment-toolbar">
                 <div className="toolbar-buttons">
                   <label className="file-upload-btn">
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       ref={fileInputRef}
                       onChange={handleFileSelect}
                       disabled={commentSubmitting}
@@ -494,8 +494,8 @@ function TicketDetails() {
                   {selectedFile && (
                     <div className="selected-file-badge">
                       <span className="selected-file-name">{selectedFile.name}</span>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="remove-file-btn"
                         onClick={() => {
                           setSelectedFile(null);

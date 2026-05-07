@@ -184,7 +184,6 @@ export default function ClientTickets() {
                 <th>Category</th>
                 <th>Product</th>
                 <th>Department</th>
-                <th>Urgency</th>
                 <th>Assigned To</th>
                 <th>Created</th>
                 <th>Updated</th>
@@ -214,7 +213,6 @@ export default function ClientTickets() {
                     <td>{ticket.category || <span className="text-muted">-</span>}</td>
                     <td>{ticket.product || <span className="text-muted">-</span>}</td>
                     <td>{ticket.department || <span className="text-muted">-</span>}</td>
-                    <td>{ticket.urgency ? formatPriority(ticket.urgency) : <span className="text-muted">-</span>}</td>
                     <td>{ticket.assigned_agent_name || <span className="text-muted">Unassigned</span>}</td>
                     <td>{formatDateTime(ticket.created_at)}</td>
                     <td>{formatDateTime(ticket.updated_at)}</td>

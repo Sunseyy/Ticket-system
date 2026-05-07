@@ -157,6 +157,25 @@
   color: #94a3b8;
 }
 
+.ticket-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.status-indicator {
+  min-width: 16px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ticket-info {
+  flex: 1;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -207,6 +226,48 @@
 .text-muted {
   color: #94a3b8;
   font-style: italic;
+}
+
+.actions-column {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.action-btn {
+  padding: 6px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  color: #475569;
+}
+
+.view-btn {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.view-btn:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 @media (max-width: 768px) {

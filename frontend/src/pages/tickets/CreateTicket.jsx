@@ -13,9 +13,8 @@ export default function CreateTicket() {
     title: "",
     description: "",
     product: "",
-    priority: "Low",
+    priority: "MEDIUM",
     category: "",
-    urgency: "",
     department: "",
     productId: null,
   });
@@ -245,21 +244,6 @@ export default function CreateTicket() {
               className="form-input"
               required
             />
-          </div>
-
-          <div className="form-group">
-            <label>Urgency:</label>
-            <select
-              name="urgency"
-              value={formData.urgency}
-              onChange={handleChange}
-              className="form-input"
-            >
-              <option value="">Select urgency</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
           </div>
 
           <div className="form-group">
