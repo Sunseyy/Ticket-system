@@ -1,15 +1,29 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { API_URL } from "../../config/api";
 
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Check for registration success param
+  useEffect(() => {
+    if (searchParams.get("registered") === "true") {
+      setShowSuccess(true);
+      // Auto-dismiss after 3 seconds
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -44,8 +58,8 @@ function Login() {
   };
 
   const handleButtonClick = (e) => {
-    e.target.style.transform = "scale(0.95)";
-    setTimeout(() => (e.target.style.transform = "scale(1)"), 150);
+    e.target.style.transform = "translateY(-2px)";
+    setTimeout(() => (e.target.style.transform = "translateY(0)"), 100);
   };
 
   return (
@@ -59,7 +73,13 @@ function Login() {
         <div style={styles.formSectionSmall}>
           <h2 style={styles.formTitle}>Login</h2>
 
-          {error && <div style={{ color: "red" }}>{error}</div>}
+          {showSuccess && (
+            <div style={styles.successBanner}>
+              ✓ Registration successful! Please log in with your credentials.
+            </div>
+          )}
+
+          {error && <div style={styles.errorBanner}>{error}</div>}
 
           <form style={styles.form} onSubmit={handleLogin}>
             <input
@@ -84,8 +104,16 @@ function Login() {
               type="submit"
               style={styles.button}
               onClick={handleButtonClick}
-              onMouseEnter={(e) => (e.target.style.background = "#174263")}
-              onMouseLeave={(e) => (e.target.style.background = "#1a3a52")}
+              onMouseEnter={(e) => {
+                e.target.style.background = "#174263";
+                e.target.style.boxShadow = "0 8px 16px rgba(37, 99, 235, 0.2)";
+                e.target.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = "#1a3a52";
+                e.target.style.boxShadow = "none";
+                e.target.style.transform = "translateY(0)";
+              }}
             >
               Login
             </button>
@@ -185,7 +213,7 @@ const styles = {
     border: "none",
     borderRadius: "8px",
     cursor: "pointer",
-    transition: "background 0.3s ease, transform 0.1s ease",
+    transition: "all 0.2s ease",
     marginTop: "8px",
   },
   loginLink: {
@@ -200,6 +228,28 @@ const styles = {
     fontWeight: "600",
     transition: "color 0.3s ease",
     cursor: "pointer",
+  },
+  successBanner: {
+    padding: "10px 14px",
+    backgroundColor: "#dcfce7",
+    border: "1px solid #86efac",
+    borderRadius: "8px",
+    color: "#166534",
+    fontSize: "13px",
+    marginBottom: "12px",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  errorBanner: {
+    padding: "10px 14px",
+    backgroundColor: "#fee2e2",
+    border: "1px solid #fecaca",
+    borderRadius: "8px",
+    color: "#b91c1c",
+    fontSize: "13px",
+    marginBottom: "12px",
+    width: "100%",
+    boxSizing: "border-box",
   },
 };
 

@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 
 function Register() {
+  const navigate = useNavigate();
   const [role, setRole] = useState("");
   const [societies, setSocieties] = useState([]);
   const [selectedSociety, setSelectedSociety] = useState("");
@@ -10,9 +11,30 @@ function Register() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    // Validation
+    if (!fullName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      setError("All fields are required.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match. Please verify and try again.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
 
     const payload = {
       full_name: fullName,
@@ -24,6 +46,8 @@ function Register() {
 
     console.log("Sending payload:", payload);
 
+    setLoading(true);
+
     try {
       const res = await fetch(`${API_URL}/register`, {
         method: "POST",
@@ -33,8 +57,19 @@ function Register() {
 
       const data = await res.json();
       console.log("Registered:", data);
+
+      if (!res.ok) {
+        setError(data.error || "Registration failed. Please try again.");
+        return;
+      }
+
+      // Redirect to login with success message
+      navigate("/login?registered=true");
     } catch (err) {
       console.error("Register error:", err);
+      setError(err.message || "An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +101,8 @@ useEffect(() => {
         <div style={styles.formSectionSmall}>
           <h2 style={styles.formTitle}>Create Account</h2>
 
+          {error && <div style={styles.errorBanner}>{error}</div>}
+
           <form style={styles.form} onSubmit={handleSubmit}>
             <input
               type="text"
@@ -93,6 +130,22 @@ useEffect(() => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              style={{
+                ...styles.input,
+                borderColor: confirmPassword && password !== confirmPassword ? "#dc2626" : styles.input.borderColor
+              }}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+
+            {confirmPassword && password !== confirmPassword && (
+              <p style={styles.validationError}>❌ Passwords do not match</p>
+            )}
 
             {/* Role selection */}
             <select
@@ -123,8 +176,24 @@ useEffect(() => {
               </select>
             )}
 
-            <button style={styles.button} type="submit">
-              Register
+            <button
+              style={styles.button}
+              type="submit"
+              disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.target.style.background = "#174263";
+                  e.target.style.boxShadow = "0 8px 16px rgba(37, 99, 235, 0.2)";
+                  e.target.style.transform = "translateY(-2px)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = "#1a3a52";
+                e.target.style.boxShadow = "none";
+                e.target.style.transform = "translateY(0)";
+              }}
+            >
+              {loading ? "Registering..." : "Register"}
             </button>
           </form>
 
@@ -218,6 +287,7 @@ const styles = {
     borderRadius: "8px",
     cursor: "pointer",
     marginTop: "8px",
+    transition: "all 0.2s ease",
   },
   loginLink: {
     textAlign: "center",
@@ -229,6 +299,22 @@ const styles = {
     color: "#1a3a52",
     textDecoration: "none",
     fontWeight: "600",
+  },
+  errorBanner: {
+    padding: "10px 14px",
+    backgroundColor: "#fee2e2",
+    border: "1px solid #fecaca",
+    borderRadius: "8px",
+    color: "#b91c1c",
+    fontSize: "13px",
+    marginBottom: "12px",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  validationError: {
+    color: "#dc2626",
+    fontSize: "12px",
+    margin: "-8px 0 4px 0",
   },
 };
 

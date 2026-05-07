@@ -35,6 +35,7 @@ export default function Sidebar() {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
+        <img src="/logo.png" alt="Tusna & Data Logo" className="sidebar-logo" />
         <h2>Tusna & Data</h2>
       </div>
       <ul className="sidebar-links">

@@ -209,6 +209,121 @@ app.get("/societies", async (req, res) => {
   }
 });
 
+/* -------- PRODUCTS -------- */
+app.get("/products", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, description, vendor, category, specification, created_at, updated_at
+       FROM products
+       WHERE deleted_at IS NULL
+       ORDER BY created_at DESC`
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+});
+
+app.get("/products/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT id, name, description, vendor, category, specification, created_at, updated_at
+       FROM products
+       WHERE id = $1 AND deleted_at IS NULL`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(500).json({ error: "Failed to fetch product" });
+  }
+});
+
+app.post("/products", async (req, res) => {
+  const { name, description, vendor, category, specification, adminId } = req.body;
+
+  if (!name || !vendor || !category) {
+    return res.status(400).json({ error: "name, vendor, and category are required" });
+  }
+
+  // Optional: Check if user is admin (uncomment if needed)
+  // const adminCheck = await ensureAdmin(adminId);
+  // if (!adminCheck.ok) {
+  //   return res.status(adminCheck.status).json({ error: adminCheck.message });
+  // }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO products (name, description, vendor, category, specification)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, name, description, vendor, category, specification, created_at, updated_at`,
+      [name, description || null, vendor, category, specification || null]
+    );
+
+    const newProduct = result.rows[0];
+    res.status(201).json({ success: true, data: newProduct });
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({ error: "Failed to create product" });
+  }
+});
+
+app.put("/products/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, description, vendor, category, specification, adminId } = req.body;
+
+  if (!name || !vendor || !category) {
+    return res.status(400).json({ error: "name, vendor, and category are required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE products
+       SET name = $1, description = $2, vendor = $3, category = $4, specification = $5, updated_at = NOW()
+       WHERE id = $6 AND deleted_at IS NULL
+       RETURNING id, name, description, vendor, category, specification, created_at, updated_at`,
+      [name, description || null, vendor, category, specification || null, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ error: "Failed to update product" });
+  }
+});
+
+app.delete("/products/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `UPDATE products
+       SET deleted_at = NOW()
+       WHERE id = $1 AND deleted_at IS NULL
+       RETURNING id`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).json({ error: "Failed to delete product" });
+  }
+});
+
 /* -------- REGISTER -------- */
 app.post("/register", async (req, res) => {
   const { full_name, email, password, role, societyId } = req.body;
@@ -263,7 +378,7 @@ app.post("/login", async (req, res) => {
 /* -------- CREATE TICKET -------- */
 app.post("/tickets", async (req, res) => {
   const {
-    title, description, product, category, department, priority, urgency, userId, userRole, userSocietyId
+    title, description, product, category, department, priority, urgency, productId, userId, userRole, userSocietyId
   } = req.body;
 
   if (!["CLIENT", "AGENT"].includes(userRole)) {
@@ -274,13 +389,13 @@ app.post("/tickets", async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO tickets
-      (title, description, product, category, department, priority, urgency, status, created_by, society_id)
-      VALUES ($1,$2,$3,$4,$5,UPPER($6)::ticket_priority,$7,'OPEN',$8,$9)
+      (title, description, product, category, department, priority, urgency, status, created_by, society_id, product_id)
+      VALUES ($1,$2,$3,$4,$5,UPPER($6)::ticket_priority,$7,'OPEN',$8,$9,$10)
       RETURNING *
       `,
       [
         title, description, product, category, department, priority, urgency || null, userId,
-        userRole === "CLIENT" ? userSocietyId : null
+        userRole === "CLIENT" ? userSocietyId : null, productId || null
       ]
     );
 
@@ -302,11 +417,13 @@ app.get("/tickets", async (req, res) => {
       result = await pool.query(
         `
         SELECT
-          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
-          u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
+          u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+          p.name AS product_name, p.vendor AS product_vendor
         FROM tickets t
         JOIN users u ON t.created_by = u.id
         LEFT JOIN users a ON t.assigned_agent_id = a.id
+        LEFT JOIN products p ON t.product_id = p.id
         WHERE t.created_by = $1 AND t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         `,
@@ -316,11 +433,13 @@ app.get("/tickets", async (req, res) => {
       result = await pool.query(
         `
         SELECT
-          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
-          u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
+          u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+          p.name AS product_name, p.vendor AS product_vendor
         FROM tickets t
         JOIN users u ON t.created_by = u.id
         LEFT JOIN users a ON t.assigned_agent_id = a.id
+        LEFT JOIN products p ON t.product_id = p.id
         WHERE (t.assigned_agent_id = $1 OR t.assigned_agent_id IS NULL) AND t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         `,
@@ -330,11 +449,13 @@ app.get("/tickets", async (req, res) => {
       result = await pool.query(
         `
         SELECT
-          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at,
-          u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+          t.id, t.title, t.description, t.product, t.category, t.department, t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
+          u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+          p.name AS product_name, p.vendor AS product_vendor
         FROM tickets t
         JOIN users u ON t.created_by = u.id
         LEFT JOIN users a ON t.assigned_agent_id = a.id
+        LEFT JOIN products p ON t.product_id = p.id
         WHERE t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         LIMIT 50
@@ -354,12 +475,14 @@ app.get("/tickets/latest", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        t.id, t.title, t.status, t.priority, t.created_at,
+        t.id, t.title, t.status, t.priority, t.created_at, t.product_id,
         u.full_name AS created_by_name,
-        a.full_name AS assigned_agent_name
+        a.full_name AS assigned_agent_name,
+        p.name AS product_name, p.vendor AS product_vendor
       FROM tickets t
       JOIN users u ON t.created_by = u.id
       LEFT JOIN users a ON t.assigned_agent_id = a.id
+      LEFT JOIN products p ON t.product_id = p.id
       WHERE t.deleted_at IS NULL
       ORDER BY t.created_at DESC
       LIMIT 5

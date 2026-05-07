@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { API_URL } from "../../config/api";
@@ -17,13 +17,38 @@ export default function CreateTicket() {
     category: "",
     urgency: "",
     department: "",
+    productId: null,
   });
 
   // NEW: State for file upload
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // NEW: State for products
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Fetch products on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setProductsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/products`);
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data.data || data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   // 🔒 Protect route
   if (!user) {
@@ -46,6 +71,7 @@ export default function CreateTicket() {
       userId: user.id,
       userRole: user.role,
       userSocietyId: user.society_id,
+      productId: formData.productId ? parseInt(formData.productId) : null,
     };
 
     try {
@@ -145,19 +171,54 @@ export default function CreateTicket() {
             />
           </div>
 
+          {/* NEW: Product Selection from Catalog */}
           <div className="form-group">
-            <label>Product / Service:</label>
+            <label>Product / Service (from catalog):</label>
             <select
+              name="productId"
+              value={formData.productId || ""}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                if (selectedId) {
+                  const selected = products.find(p => p.id === parseInt(selectedId));
+                  setFormData({
+                    ...formData,
+                    productId: selectedId,
+                    product: selected ? selected.name : "",
+                  });
+                } else {
+                  setFormData({
+                    ...formData,
+                    productId: null,
+                    product: "",
+                  });
+                }
+              }}
+              className="form-input"
+              disabled={productsLoading}
+            >
+              <option value="">
+                {productsLoading ? "Loading products..." : "Select a product"}
+              </option>
+              {products.map((prod) => (
+                <option key={prod.id} value={prod.id}>
+                  {prod.name} ({prod.vendor})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Product Name (custom):</label>
+            <input
+              type="text"
               name="product"
               value={formData.product}
               onChange={handleChange}
               className="form-input"
+              placeholder="Or enter custom product name"
               required
-            >
-              <option value="">Select a product</option>
-              <option value="Fortinet">Fortinet</option>
-              <option value="Cisco">Cisco</option>
-            </select>
+            />
           </div>
 
           <div className="form-group">

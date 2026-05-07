@@ -65,7 +65,7 @@ CREATE TABLE public.tickets (
     product character varying(100) NOT NULL,
     category character varying(100) NOT NULL,
     department character varying(100) NOT NULL,
-
+    product_id integer REFERENCES public.products(id) ON DELETE SET NULL,
     priority ticket_priority DEFAULT 'MEDIUM'::ticket_priority NOT NULL,
     urgency character varying(20),
     status ticket_status DEFAULT 'OPEN'::ticket_status NOT NULL,
@@ -101,11 +101,24 @@ CREATE TABLE public.attachments (
     deleted_at timestamp without time zone
 );
 
+CREATE TABLE public.products (
+    id SERIAL PRIMARY KEY,
+    name character varying(255) NOT NULL,
+    description text,
+    vendor character varying(100) NOT NULL,
+    category character varying(100) NOT NULL,
+    specification text,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now(),
+    deleted_at timestamp without time zone
+);
+
 -- 4. Triggers for Auto-Updating 'updated_at'
 CREATE TRIGGER update_societies_modtime BEFORE UPDATE ON public.societies FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_users_modtime BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_tickets_modtime BEFORE UPDATE ON public.tickets FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_comments_modtime BEFORE UPDATE ON public.comments FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+CREATE TRIGGER update_products_modtime BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
 -- 5. Data Insertion (Converted from COPY to secure INSERT statements)
 INSERT INTO public.societies (id, name, type, contact_email, created_at, updated_at) VALUES
@@ -134,11 +147,19 @@ INSERT INTO public.comments (id, ticket_id, user_id, content, created_at) VALUES
 (2, 2, 1, 'try to log in', '2026-02-16 12:25:24.157223'),
 (3, 2, 5, 'thx', '2026-02-16 16:07:15.369399');
 
+INSERT INTO public.products (id, name, description, vendor, category, specification, created_at, updated_at) VALUES
+(1, 'Fortinet FortiGate 60F', 'Enterprise firewall appliance with advanced threat protection', 'Fortinet', 'Firewall', 'Throughput: 3.5 Gbps, Max Concurrent Sessions: 2 Million', '2026-02-17 10:00:00', '2026-02-17 10:00:00'),
+(2, 'Cisco Catalyst 9300', 'Enterprise-class modular switch supporting multiple access ports', 'Cisco', 'Network Switch', 'Ports: 48 x 1GE, Backplane: 1.44 Tbps', '2026-02-17 10:01:00', '2026-02-17 10:01:00'),
+(3, 'Fortinet FortiAP 220B', 'Wireless access point for enterprise networks', 'Fortinet', 'Wireless Access Point', '802.11ax, Dual-band, Max Clients: 256', '2026-02-17 10:02:00', '2026-02-17 10:02:00'),
+(4, 'Cisco Meraki MX95', 'Next-generation secure SD-WAN appliance', 'Cisco', 'SD-WAN Appliance', 'Aggregate Throughput: 4 Gbps', '2026-02-17 10:03:00', '2026-02-17 10:03:00'),
+(5, 'Fortinet FortiAnalyzer', 'Centralized log management and analytics platform', 'Fortinet', 'Security Analytics', 'Daily Log Capacity: 30GB', '2026-02-17 10:04:00', '2026-02-17 10:04:00');
+
 -- 6. Sequence Resets
 SELECT pg_catalog.setval('public.societies_id_seq', 10, true);
 SELECT pg_catalog.setval('public.users_id_seq', 8, true);
 SELECT pg_catalog.setval('public.tickets_id_seq', 3, true);
 SELECT pg_catalog.setval('public.comments_id_seq', 3, true);
+SELECT pg_catalog.setval('public.products_id_seq', 5, true);
 
 -- 7. Performance Indexes
 CREATE INDEX idx_users_society_id ON public.users(society_id);
@@ -147,3 +168,5 @@ CREATE INDEX idx_tickets_assigned_agent ON public.tickets(assigned_agent_id);
 CREATE INDEX idx_tickets_society_id ON public.tickets(society_id);
 CREATE INDEX idx_comments_ticket_id ON public.comments(ticket_id);
 CREATE INDEX idx_attachments_ticket_id ON public.attachments(ticket_id);
+CREATE INDEX idx_products_vendor ON public.products(vendor);
+CREATE INDEX idx_products_category ON public.products(category);

@@ -47,7 +47,7 @@ app.get("/health", (req, res) => {
 
 // ─── CREATE TICKET ────────────────────────────────────────────────────────────
 app.post("/tickets", async (req, res) => {
-  const { title, description, product, category, department, priority, urgency, userId, userRole, userSocietyId } = req.body;
+  const { title, description, product, category, department, priority, urgency, productId, userId, userRole, userSocietyId } = req.body;
 
   if (!title || !description || !product || !category || !department) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -60,11 +60,11 @@ app.post("/tickets", async (req, res) => {
   try {
     const result = await pool.query(
       `INSERT INTO tickets
-       (title, description, product, category, department, priority, urgency, status, created_by, society_id)
-       VALUES ($1,$2,$3,$4,$5,UPPER($6)::ticket_priority,$7,'OPEN',$8,$9)
+       (title, description, product, category, department, priority, urgency, status, created_by, society_id, product_id)
+       VALUES ($1,$2,$3,$4,$5,UPPER($6)::ticket_priority,$7,'OPEN',$8,$9,$10)
        RETURNING *`,
       [title, description, product, category, department, priority, urgency || null, userId,
-        userRole === "CLIENT" ? userSocietyId : null]
+        userRole === "CLIENT" ? userSocietyId : null, productId || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -82,11 +82,13 @@ app.get("/tickets", async (req, res) => {
     if (role && role.toUpperCase() === "CLIENT") {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
-                t.priority, t.urgency, t.status, t.created_at, t.updated_at,
-                u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+                t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
+                u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+                p.name AS product_name, p.vendor AS product_vendor
          FROM tickets t
          JOIN users u ON t.created_by = u.id
          LEFT JOIN users a ON t.assigned_agent_id = a.id
+         LEFT JOIN products p ON t.product_id = p.id
          WHERE t.created_by = $1 AND t.deleted_at IS NULL
          ORDER BY t.created_at DESC`,
         [userId]
@@ -94,11 +96,13 @@ app.get("/tickets", async (req, res) => {
     } else if (role && role.toUpperCase() === "AGENT") {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
-                t.priority, t.urgency, t.status, t.created_at, t.updated_at,
-                u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+                t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
+                u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+                p.name AS product_name, p.vendor AS product_vendor
          FROM tickets t
          JOIN users u ON t.created_by = u.id
          LEFT JOIN users a ON t.assigned_agent_id = a.id
+         LEFT JOIN products p ON t.product_id = p.id
          WHERE (t.assigned_agent_id = $1 OR t.assigned_agent_id IS NULL) AND t.deleted_at IS NULL
          ORDER BY t.created_at DESC`,
         [userId]
@@ -106,11 +110,13 @@ app.get("/tickets", async (req, res) => {
     } else {
       result = await pool.query(
         `SELECT t.id, t.title, t.description, t.product, t.category, t.department,
-                t.priority, t.urgency, t.status, t.created_at, t.updated_at,
-                u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+                t.priority, t.urgency, t.status, t.created_at, t.updated_at, t.product_id,
+                u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+                p.name AS product_name, p.vendor AS product_vendor
          FROM tickets t
          JOIN users u ON t.created_by = u.id
          LEFT JOIN users a ON t.assigned_agent_id = a.id
+         LEFT JOIN products p ON t.product_id = p.id
          WHERE t.deleted_at IS NULL
          ORDER BY t.created_at DESC
          LIMIT 50`
@@ -127,11 +133,13 @@ app.get("/tickets", async (req, res) => {
 app.get("/tickets/latest", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT t.id, t.title, t.status, t.priority, t.created_at,
-              u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+      `SELECT t.id, t.title, t.status, t.priority, t.created_at, t.product_id,
+              u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+              p.name AS product_name, p.vendor AS product_vendor
        FROM tickets t
        JOIN users u ON t.created_by = u.id
        LEFT JOIN users a ON t.assigned_agent_id = a.id
+       LEFT JOIN products p ON t.product_id = p.id
        WHERE t.deleted_at IS NULL
        ORDER BY t.created_at DESC
        LIMIT 5`
@@ -149,11 +157,14 @@ app.get("/tickets/:id", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT t.id, t.title, t.description, t.status, t.priority, t.urgency,
-              t.created_at, t.updated_at, t.created_by, t.assigned_agent_id,
-              u.full_name AS created_by_name, a.full_name AS assigned_agent_name
+              t.created_at, t.updated_at, t.created_by, t.assigned_agent_id, t.product_id,
+              u.full_name AS created_by_name, a.full_name AS assigned_agent_name,
+              p.id AS product_id, p.name AS product_name, p.vendor AS product_vendor,
+              p.category AS product_category, p.specification AS product_specification
        FROM tickets t
        JOIN users u ON t.created_by = u.id
        LEFT JOIN users a ON t.assigned_agent_id = a.id
+       LEFT JOIN products p ON t.product_id = p.id
        WHERE t.id = $1 AND t.deleted_at IS NULL`,
       [id]
     );
