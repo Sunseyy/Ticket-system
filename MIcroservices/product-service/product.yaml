@@ -100,7 +100,7 @@ metadata:
   name: product-service-config
   namespace: ticket-system
 data:
-  PORT: "3004"
+  PORT: "3005"
   DB_HOST: "product-db"
   DB_PORT: "5432"
   DB_NAME: "product_db"
@@ -134,7 +134,7 @@ spec:
         - name: product-service
           image: ghcr.io/sunseyy/product-service:latest
           ports:
-            - containerPort: 3004
+            - containerPort: 3005
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -183,13 +183,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 3004
+              port: 3005
             initialDelaySeconds: 15
             periodSeconds: 20
           readinessProbe:
             httpGet:
               path: /health
-              port: 3004
+              port: 3005
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
@@ -213,8 +213,8 @@ spec:
   selector:
     app: product-service
   ports:
-    - port: 3004
-      targetPort: 3004
+    - port: 3005
+      targetPort: 3005
 
 ---
 apiVersion: route.openshift.io/v1
@@ -227,7 +227,7 @@ spec:
     kind: Service
     name: product-service
   port:
-    targetPort: 3004
+    targetPort: 3005
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
