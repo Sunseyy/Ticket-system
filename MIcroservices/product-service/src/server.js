@@ -8,7 +8,7 @@ const app = express();
 /* ───────────────────── CONFIG ───────────────────── */
 
 const config = {
-  port: parseInt(process.env.PORT, 10) || 3004,
+  port: parseInt(process.env.PORT, 10) || 3005,
   corsOrigins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map(o => o.trim())
     : ["http://localhost:5173", "http://localhost", "http://localhost:80"],
