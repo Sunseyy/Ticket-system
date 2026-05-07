@@ -1,0 +1,233 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: product-db-secret
+  namespace: ticket-system
+type: Opaque
+stringData:
+  username: product_user
+  password: product_pass
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: product-db-pvc
+  namespace: ticket-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-db
+  namespace: ticket-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-db
+  template:
+    metadata:
+      labels:
+        app: product-db
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: product-db
+          image: postgres:15-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: POSTGRES_DB
+              value: "product_db"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: product-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: product-db-secret
+                  key: password
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: product-db-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: product-db-storage
+          persistentVolumeClaim:
+            claimName: product-db-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-db
+  namespace: ticket-system
+spec:
+  selector:
+    app: product-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: product-service-config
+  namespace: ticket-system
+data:
+  PORT: "3004"
+  DB_HOST: "product-db"
+  DB_PORT: "5432"
+  DB_NAME: "product_db"
+  CORS_ORIGINS: "http://frontend-service"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: ticket-system
+  labels:
+    app: product-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: product-service
+          image: ghcr.io/sunseyy/product-service:latest
+          ports:
+            - containerPort: 3004
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: product-service-config
+                  key: PORT
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: product-service-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: product-service-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: product-service-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: product-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: product-db-secret
+                  key: password
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: product-service-config
+                  key: CORS_ORIGINS
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: ticket-system
+spec:
+  selector:
+    app: product-service
+  ports:
+    - port: 3004
+      targetPort: 3004
+
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: product-service
+  namespace: ticket-system
+spec:
+  to:
+    kind: Service
+    name: product-service
+  port:
+    targetPort: 3004
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
