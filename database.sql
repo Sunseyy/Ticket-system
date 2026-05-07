@@ -58,6 +58,18 @@ CREATE TABLE public.users (
     deleted_at timestamp without time zone
 );
 
+CREATE TABLE public.products (
+    id SERIAL PRIMARY KEY,
+    name character varying(255) NOT NULL,
+    description text,
+    vendor character varying(100) NOT NULL,
+    category character varying(100) NOT NULL,
+    specification text,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now(),
+    deleted_at timestamp without time zone
+);
+
 CREATE TABLE public.tickets (
     id SERIAL PRIMARY KEY,
     title text NOT NULL,
@@ -76,41 +88,6 @@ CREATE TABLE public.tickets (
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     deleted_at timestamp without time zone,
     CONSTRAINT tickets_urgency_check CHECK (((urgency)::text = ANY ((ARRAY['Low'::character varying, 'Medium'::character varying, 'High'::character varying])::text[])))
-);
-
-CREATE TABLE public.comments (
-    id SERIAL PRIMARY KEY,
-    ticket_id integer NOT NULL REFERENCES public.tickets(id) ON DELETE CASCADE,
-    user_id integer NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    content text NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    deleted_at timestamp without time zone
-);
-
-CREATE TABLE public.attachments (
-    id SERIAL PRIMARY KEY,
-    ticket_id INTEGER REFERENCES public.tickets(id) ON DELETE CASCADE,
-    comment_id INTEGER REFERENCES public.comments(id) ON DELETE CASCADE,
-    uploaded_by INTEGER NOT NULL REFERENCES public.users(id),
-    file_name TEXT NOT NULL,
-    file_path TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    content_type TEXT NOT NULL,
-    created_at timestamp without time zone DEFAULT now(),
-    deleted_at timestamp without time zone
-);
-
-CREATE TABLE public.products (
-    id SERIAL PRIMARY KEY,
-    name character varying(255) NOT NULL,
-    description text,
-    vendor character varying(100) NOT NULL,
-    category character varying(100) NOT NULL,
-    specification text,
-    created_at timestamp without time zone DEFAULT now(),
-    updated_at timestamp without time zone DEFAULT now(),
-    deleted_at timestamp without time zone
 );
 
 -- 4. Triggers for Auto-Updating 'updated_at'

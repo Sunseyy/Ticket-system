@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Sidebar.css";
 
 export default function Sidebar() {
   const { user } = useAuth();
+  const [logoError, setLogoError] = useState(false);
 
   const clientLinks = [
     { name: "Dashboard", path: "/dashboard", icon: "🏠" },
@@ -35,7 +37,17 @@ export default function Sidebar() {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <img src="/logo.png" alt="Tusna & Data Logo" className="sidebar-logo" />
+        {!logoError && (
+          <img 
+            src="/logo.png" 
+            alt="Tusna & Data Logo" 
+            className="sidebar-logo" 
+            onError={() => setLogoError(true)}
+          />
+        )}
+        {logoError && (
+          <div className="sidebar-logo-placeholder">T&D</div>
+        )}
         <h2>Tusna & Data</h2>
       </div>
       <ul className="sidebar-links">

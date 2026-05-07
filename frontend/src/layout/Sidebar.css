@@ -33,6 +33,21 @@
   padding: 8px;
 }
 
+.sidebar-logo-placeholder {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 2px;
+}
+
 .sidebar-header h2 {
   margin: 0;
   font-size: 1.6rem;
@@ -85,6 +100,13 @@
   .sidebar-logo {
     width: 60px;
     height: 60px;
+    margin-bottom: 8px;
+  }
+
+  .sidebar-logo-placeholder {
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
     margin-bottom: 8px;
   }
 
