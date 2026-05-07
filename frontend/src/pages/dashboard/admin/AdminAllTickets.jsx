@@ -373,15 +373,23 @@ function AdminAllTickets() {
               </tr>
             </thead>
             <tbody>
-              {filteredTickets.map((ticket) => (
+              {filteredTickets.map((ticket) => {
+                const statusKey = normalizeStatus(ticket.status);
+                const statusColor = statusKey === "closed" ? "#dc2626" : statusKey === "open" ? "#16a34a" : "#2563eb";
+                return (
                 <tr key={ticket.id}>
                   <td>
-                    <div className="ticket-title">{ticket.title || "Untitled"}</div>
-                    {ticket.description && (
-                      <div className="ticket-description" title={ticket.description}>
-                        {ticket.description}
+                    <div className="ticket-cell">
+                      <div className="status-indicator" style={{ backgroundColor: statusColor }}></div>
+                      <div className="ticket-info">
+                        <div className="ticket-title">{ticket.title || "Untitled"}</div>
+                        {ticket.description && (
+                          <div className="ticket-description" title={ticket.description}>
+                            {ticket.description.substring(0, 80)}...
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </td>
                   <td>{ticket.created_by_name || <span className="text-muted">Unknown</span>}</td>
                   <td>
@@ -450,7 +458,8 @@ function AdminAllTickets() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>

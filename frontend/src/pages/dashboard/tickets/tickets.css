@@ -306,6 +306,121 @@
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
 }
 
+/* Table Styles */
+.tickets-table-wrapper {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.tickets-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tickets-table thead th {
+  background: #f8fafc;
+  padding: 16px 18px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tickets-table tbody td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+  color: #334155;
+}
+
+.tickets-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.tickets-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.tickets-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ticket-title {
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.ticket-description {
+  color: #64748b;
+  font-size: 12px;
+  max-width: 280px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* Ticket Cell with Status Indicator */
+.ticket-cell {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.status-indicator {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 50%;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ticket-info {
+  flex: 1;
+}
+
+/* Action Buttons */
+.actions-column {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.action-btn {
+  padding: 6px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-btn {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+}
+
+.view-btn:hover {
+  background: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
   .tickets-heading {
     flex-direction: column;

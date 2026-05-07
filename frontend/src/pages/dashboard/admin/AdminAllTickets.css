@@ -238,6 +238,26 @@
   line-height: 1.4;
 }
 
+/* Ticket Cell with Status Indicator */
+.ticket-cell {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.status-indicator {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 50%;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ticket-info {
+  flex: 1;
+}
+
 /* Status Pills */
 .status-pill {
   display: inline-flex;
