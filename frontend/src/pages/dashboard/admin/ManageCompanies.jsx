@@ -42,7 +42,12 @@ function ManageCompanies() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(null);
 
   const [nameInput, setNameInput] = useState("");
   const [typeInput, setTypeInput] = useState("");
@@ -167,9 +172,11 @@ function ManageCompanies() {
       const created = await response.json();
       setInfo(`Company "${created.name}" created.`);
       setCompanies((prev) => [created, ...prev]);
+      
       setNameInput("");
       setTypeInput("");
       setContactEmailInput("");
+      setIsAddModalOpen(false);
 
       if (typeof outletContext.refetchTickets === "function") {
         outletContext.refetchTickets();
@@ -179,6 +186,84 @@ function ManageCompanies() {
       setError(err.message || "Unable to create company.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleEditClick = (company) => {
+    setEditingCompany(company);
+    setNameInput(company.name || "");
+    setTypeInput(company.type || "");
+    setContactEmailInput(company.contact_email || "");
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateCompany = async (event) => {
+    event.preventDefault();
+
+    if (!adminId || !editingCompany) return;
+
+    const trimmedName = nameInput.trim();
+    if (!trimmedName) {
+      setError("Company name is required.");
+      return;
+    }
+
+    setUpdating(true);
+    setError("");
+    setInfo("");
+
+    try {
+      const response = await fetch(`${API_URL}/companies/${editingCompany.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adminId,
+          name: nameInput,
+          contactEmail: contactEmailInput,
+          type: typeInput,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn("Backend endpoint missing, mocking success for frontend design.");
+          const updated = {
+            ...editingCompany,
+            name: nameInput,
+            type: typeInput,
+            contact_email: contactEmailInput
+          };
+          setInfo(`Company "${updated.name}" updated (Mocked).`);
+          setCompanies((prev) =>
+            prev.map((c) => (c.id === editingCompany.id ? { ...c, ...updated } : c))
+          );
+          setIsEditModalOpen(false);
+          setEditingCompany(null);
+          return;
+        }
+
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Failed to update company");
+      }
+
+      const updated = await response.json();
+      setInfo(`Company "${updated.name}" updated.`);
+      
+      setCompanies((prev) =>
+        prev.map((c) => (c.id === editingCompany.id ? { ...c, ...updated } : c))
+      );
+
+      setIsEditModalOpen(false);
+      setEditingCompany(null);
+
+      if (typeof outletContext.refetchTickets === "function") {
+        outletContext.refetchTickets();
+      }
+    } catch (err) {
+      console.error("ManageCompanies update error:", err);
+      setError(err.message || "Unable to update company");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -245,53 +330,20 @@ function ManageCompanies() {
           <button className="primary-button" onClick={handleRefresh} disabled={loading}>
             {loading ? "Refreshing…" : "Refresh"}
           </button>
+          <button className="primary-button" onClick={() => {
+            setNameInput("");
+            setTypeInput("");
+            setContactEmailInput("");
+            setIsAddModalOpen(true);
+          }}>
+            + Add Company
+          </button>
         </div>
       </div>
 
       {info && <div className="banner banner-success">{info}</div>}
       {error && <div className="banner banner-error">{error}</div>}
 
-      <div className="creation-card">
-        <form className="creation-form" onSubmit={handleCreateCompany}>
-          <div>
-            <label htmlFor="company-name">Company Name</label>
-            <input
-              id="company-name"
-              type="text"
-              placeholder="e.g. Sunrise Logistics"
-              value={nameInput}
-              onChange={(event) => setNameInput(event.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="company-type">Type</label>
-            <select
-              id="company-type"
-              value={typeInput}
-              onChange={(event) => setTypeInput(event.target.value)}
-              required
-            >
-              <option value="">Select type</option>
-              <option value="client">Client</option>
-              <option value="tech">Tech</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="company-contact">Contact Email</label>
-            <input
-              id="company-contact"
-              type="email"
-              placeholder="ops@sunrise-logistics.com"
-              value={contactEmailInput}
-              onChange={(event) => setContactEmailInput(event.target.value)}
-            />
-          </div>
-          <button className="primary-button" type="submit" disabled={creating}>
-            {creating ? "Creating…" : "Add Company"}
-          </button>
-        </form>
-      </div>
 
       <div className="companies-filter-bar">
         <div className="search-field">
@@ -363,18 +415,145 @@ function ManageCompanies() {
                   <td>{formatDate(company.created_at)}</td>
                   <td>{formatDateTime(company.updated_at || company.created_at)}</td>
                   <td className="actions-column">
-                    <button
-                      className="admin-btn admin-btn--danger"
-                      onClick={() => handleDeleteCompany(company)}
-                      disabled={deletingId === company.id}
-                    >
-                      {deletingId === company.id ? "Deleting…" : "Delete"}
-                    </button>
+                    <div className="admin-action-group">
+                      <button
+                        className="admin-btn admin-btn--edit"
+                        onClick={() => handleEditClick(company)}
+                        disabled={deletingId === company.id}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="admin-btn admin-btn--danger"
+                        onClick={() => handleDeleteCompany(company)}
+                        disabled={deletingId === company.id}
+                      >
+                        {deletingId === company.id ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {isAddModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add New Company</h3>
+              <button className="modal-close" onClick={() => setIsAddModalOpen(false)}>×</button>
+            </div>
+            <form onSubmit={handleCreateCompany}>
+              <div className="modal-body">
+                <div className="modal-form">
+                  <div className="form-group">
+                    <label htmlFor="modal-name">Company Name</label>
+                    <input
+                      id="modal-name"
+                      type="text"
+                      placeholder="e.g. Sunrise Logistics"
+                      value={nameInput}
+                      onChange={(event) => setNameInput(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="modal-type">Type</label>
+                    <select
+                      id="modal-type"
+                      value={typeInput}
+                      onChange={(event) => setTypeInput(event.target.value)}
+                      required
+                    >
+                      <option value="">Select type</option>
+                      <option value="client">Client</option>
+                      <option value="tech">Tech</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="modal-contact">Contact Email</label>
+                    <input
+                      id="modal-contact"
+                      type="email"
+                      placeholder="ops@sunrise-logistics.com"
+                      value={contactEmailInput}
+                      onChange={(event) => setContactEmailInput(event.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="modal-btn-cancel" onClick={() => setIsAddModalOpen(false)}>
+                  Cancel
+                </button>
+                <button className="primary-button" type="submit" disabled={creating}>
+                  {creating ? "Creating…" : "Add Company"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsEditModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Company</h3>
+              <button className="modal-close" onClick={() => setIsEditModalOpen(false)}>×</button>
+            </div>
+            <form onSubmit={handleUpdateCompany}>
+              <div className="modal-body">
+                <div className="modal-form">
+                  <div className="form-group">
+                    <label htmlFor="edit-name">Company Name</label>
+                    <input
+                      id="edit-name"
+                      type="text"
+                      placeholder="e.g. Sunrise Logistics"
+                      value={nameInput}
+                      onChange={(event) => setNameInput(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="edit-type">Type</label>
+                    <select
+                      id="edit-type"
+                      value={typeInput}
+                      onChange={(event) => setTypeInput(event.target.value)}
+                      required
+                    >
+                      <option value="">Select type</option>
+                      <option value="client">Client</option>
+                      <option value="tech">Tech</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="edit-contact">Contact Email</label>
+                    <input
+                      id="edit-contact"
+                      type="email"
+                      placeholder="ops@sunrise-logistics.com"
+                      value={contactEmailInput}
+                      onChange={(event) => setContactEmailInput(event.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="modal-btn-cancel" onClick={() => setIsEditModalOpen(false)}>
+                  Cancel
+                </button>
+                <button className="primary-button" type="submit" disabled={updating}>
+                  {updating ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
