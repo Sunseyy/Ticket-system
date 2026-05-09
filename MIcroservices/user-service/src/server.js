@@ -226,14 +226,14 @@ app.put("/companies/:id", async (req, res) => {
   if (!companyName || !companyType) {
     return res.status(400).json({ error: "Company name and type are required" });
   }
-  
+
 
   try {
     const updateResult = await pool.query(
       `UPDATE societies 
        SET name = $1, type = $2, contact_email = $3, updated_at = NOW() 
        WHERE id = $4 AND deleted_at IS NULL 
-       RETURNING id, name, type, contact_email, created_at, updated_at`, 
+       RETURNING id, name, type, contact_email, created_at, updated_at`,
       [companyName, companyType, companyEmail, companyId]
     );
     if (updateResult.rows.length === 0) return res.status(404).json({ error: "Company not found" });
