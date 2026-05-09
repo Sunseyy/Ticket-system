@@ -209,6 +209,40 @@ app.delete("/companies/:id", async (req, res) => {
   }
 });
 
+// ─── ADMIN: UPDATE COMPANY ────────────────────────────────────────────────────
+app.put("/companies/:id", async (req, res) => {
+  const { id } = req.params;
+  const { adminId, name, type, contactEmail } = req.body || {};
+  const check = await ensureAdmin(adminId);
+  if (!check.ok) return res.status(check.status).json({ error: check.message });
+
+  const companyId = toSafeInteger(id);
+  if (companyId === null) return res.status(400).json({ error: "Valid company id is required" });
+
+  const companyName = String(name || "").trim();
+  const companyType = String(type || "").trim();
+  const companyEmail = contactEmail ? String(contactEmail).trim() : null;
+
+  if (!companyName || !companyType) {
+    return res.status(400).json({ error: "Company name and type are required" });
+  }
+
+  try {
+    const updateResult = await pool.query(
+      `UPDATE societies 
+       SET name = $1, type = $2, contact_email = $3, updated_at = NOW() 
+       WHERE id = $4 AND deleted_at IS NULL 
+       RETURNING id, name, type, contact_email, created_at, updated_at`, 
+      [companyName, companyType, companyEmail, companyId]
+    );
+    if (updateResult.rows.length === 0) return res.status(404).json({ error: "Company not found" });
+    res.json(updateResult.rows[0]);
+  } catch (err) {
+    console.error("Update company error:", err);
+    res.status(500).json({ error: "Failed to update company" });
+  }
+});
+
 // ─── INTERNAL: Sync user to user-db AND ticket-service ───────────────────────
 app.post("/internal/sync-user", async (req, res) => {
   const { id, full_name, email, role, society_id } = req.body;

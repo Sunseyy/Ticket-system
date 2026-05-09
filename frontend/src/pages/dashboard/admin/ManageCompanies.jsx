@@ -172,7 +172,7 @@ function ManageCompanies() {
       const created = await response.json();
       setInfo(`Company "${created.name}" created.`);
       setCompanies((prev) => [created, ...prev]);
-      
+
       setNameInput("");
       setTypeInput("");
       setContactEmailInput("");
@@ -225,30 +225,13 @@ function ManageCompanies() {
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          console.warn("Backend endpoint missing, mocking success for frontend design.");
-          const updated = {
-            ...editingCompany,
-            name: nameInput,
-            type: typeInput,
-            contact_email: contactEmailInput
-          };
-          setInfo(`Company "${updated.name}" updated (Mocked).`);
-          setCompanies((prev) =>
-            prev.map((c) => (c.id === editingCompany.id ? { ...c, ...updated } : c))
-          );
-          setIsEditModalOpen(false);
-          setEditingCompany(null);
-          return;
-        }
-
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || "Failed to update company");
       }
 
       const updated = await response.json();
       setInfo(`Company "${updated.name}" updated.`);
-      
+
       setCompanies((prev) =>
         prev.map((c) => (c.id === editingCompany.id ? { ...c, ...updated } : c))
       );
