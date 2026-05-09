@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
+import tndLogo from "../../assets/TnD logo.png";
 
 function Register() {
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ useEffect(() => {
     <div style={styles.wrapper}>
       <div style={styles.container}>
         <div style={styles.brandingSectionSmall}>
-          <h1 style={styles.brandingTitle}>TUSNA & DATA</h1>
+          <img src={tndLogo} alt="TnD Logo" style={styles.brandingLogo} />
           <p style={styles.brandingTagline}>Smart IT Solutions & Support</p>
         </div>
 
@@ -225,7 +226,7 @@ const styles = {
     height: "500px",
     background: "white",
     borderRadius: "12px",
-    boxShadow: "0 4px 20px rgba(26, 58, 82, 0.1)",
+    boxShadow: "0 10px 40px rgba(0, 0, 0, 0.25)",
     overflow: "hidden",
   },
   brandingSectionSmall: {
@@ -238,20 +239,21 @@ const styles = {
     color: "white",
     padding: "20px",
   },
-  brandingTitle: {
-    fontSize: "32px",
-    fontWeight: "700",
-    margin: "0 0 8px 0",
-    letterSpacing: "1.5px",
-    color: "white",
+  brandingLogo: {
+    maxWidth: "80%",
+    maxHeight: "150px",
+    objectFit: "contain",
+    marginBottom: "16px",
+    filter: "drop-shadow(0px 4px 6px rgba(255,255,255,0.4)) brightness(1.2)",
   },
   brandingTagline: {
-    fontSize: "14px",
-    fontWeight: "300",
+    fontSize: "15px",
+    fontWeight: "400",
     margin: 0,
-    color: "#b0d4f1",
+    color: "#ffffff",
     letterSpacing: "0.5px",
     textAlign: "center",
+    textShadow: "1px 1px 3px rgba(0,0,0,0.5)",
   },
   formSectionSmall: {
     flex: 1,
