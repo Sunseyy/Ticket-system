@@ -223,7 +223,7 @@ function AgentTickets() {
             <tbody>
               {filteredTickets.map((ticket) => {
                 const statusKey = normalizeStatus(ticket.status);
-                const statusColor = statusKey === "closed" ? "#dc2626" : statusKey === "open" ? "#16a34a" : "#2563eb";
+                const statusColor = statusKey === "closed" ? "#dc2626" : statusKey === "open" ? "#16a34a" : "#00A3FF";
                 return (
                   <tr key={ticket.id}>
                     <td>

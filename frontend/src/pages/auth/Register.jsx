@@ -75,20 +75,20 @@ function Register() {
   };
 
   // Fetch societies ONLY when role = CLIENT
-useEffect(() => {
-  if (role === "CLIENT") {
-    fetch(`${API_URL}/societies?type=${role}`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Societies:", data);
-        setSocieties(data);
-      })
-      .catch((err) => console.error("Fetch error:", err));
-  } else {
-    setSocieties([]);
-    setSelectedSociety("");
-  }
-}, [role]);
+  useEffect(() => {
+    if (role === "CLIENT") {
+      fetch(`${API_URL}/societies?type=${role}`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Societies:", data);
+          setSocieties(data);
+        })
+        .catch((err) => console.error("Fetch error:", err));
+    } else {
+      setSocieties([]);
+      setSelectedSociety("");
+    }
+  }, [role]);
 
 
   return (
@@ -183,13 +183,13 @@ useEffect(() => {
               disabled={loading}
               onMouseEnter={(e) => {
                 if (!loading) {
-                  e.target.style.background = "#174263";
-                  e.target.style.boxShadow = "0 8px 16px rgba(37, 99, 235, 0.2)";
+                  e.target.style.background = "#008CD9";
+                  e.target.style.boxShadow = "0 8px 16px rgba(0, 163, 255, 0.3)";
                   e.target.style.transform = "translateY(-2px)";
                 }
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = "#1a3a52";
+                e.target.style.background = "#00A3FF";
                 e.target.style.boxShadow = "none";
                 e.target.style.transform = "translateY(0)";
               }}
@@ -231,7 +231,7 @@ const styles = {
   },
   brandingSectionSmall: {
     flex: 1,
-    background: "#1a3a52",
+    background: "#00A3FF",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -284,7 +284,7 @@ const styles = {
     fontSize: "14px",
     fontWeight: "600",
     color: "white",
-    background: "#1a3a52",
+    background: "#00A3FF",
     border: "none",
     borderRadius: "8px",
     cursor: "pointer",
@@ -298,7 +298,7 @@ const styles = {
     color: "#666",
   },
   link: {
-    color: "#1a3a52",
+    color: "#00A3FF",
     textDecoration: "none",
     fontWeight: "600",
   },

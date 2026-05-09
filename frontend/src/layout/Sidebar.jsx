@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Sidebar.css";
+import tndLogo from "../assets/TnD logo.png";
 
 export default function Sidebar() {
   const { user } = useAuth();
@@ -39,8 +40,8 @@ export default function Sidebar() {
       <div className="sidebar-header">
         {!logoError && (
           <img 
-            src="/logo.png" 
-            alt="Tusna & Data Logo" 
+            src={tndLogo}
+            alt="TnD Logo" 
             className="sidebar-logo" 
             onError={() => setLogoError(true)}
           />
@@ -48,7 +49,6 @@ export default function Sidebar() {
         {logoError && (
           <div className="sidebar-logo-placeholder">T&D</div>
         )}
-        <h2>Tusna & Data</h2>
       </div>
       <ul className="sidebar-links">
         {links.map((link) => (

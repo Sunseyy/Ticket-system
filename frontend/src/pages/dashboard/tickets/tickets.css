@@ -401,7 +401,7 @@
 }
 
 .view-btn:hover {
-  background: #2563eb;
+  background: #00A3FF;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   transform: translateY(-1px);
 }

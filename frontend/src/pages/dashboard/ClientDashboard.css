@@ -31,7 +31,7 @@
   padding: 10px 20px;
   border: none;
   border-radius: 999px;
-  background: #2563eb;
+  background: #00A3FF;
   color: #ffffff;
   font-weight: 600;
   font-size: 14px;
@@ -117,7 +117,7 @@
 .link-button {
   border: none;
   background: transparent;
-  color: #2563eb;
+  color: #00A3FF;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
@@ -166,7 +166,7 @@
   padding: 8px 16px;
   border: none;
   border-radius: 999px;
-  background: #2563eb;
+  background: #00A3FF;
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
