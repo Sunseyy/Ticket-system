@@ -226,6 +226,7 @@ app.put("/companies/:id", async (req, res) => {
   if (!companyName || !companyType) {
     return res.status(400).json({ error: "Company name and type are required" });
   }
+  
 
   try {
     const updateResult = await pool.query(
@@ -242,10 +243,7 @@ app.put("/companies/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to update company" });
   }
 });
-const handleUpdateCompany = async (event) => {
-  event.preventDefault();
-  console.log("editingCompany:", editingCompany);  // ← ajoute ça
-  console.log("URL:", `${API_URL}/companies/${editingCompany?.id}`);
+
 
 // ─── INTERNAL: Sync user to user-db AND ticket-service ───────────────────────
 app.post("/internal/sync-user", async (req, res) => {
