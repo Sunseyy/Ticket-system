@@ -65,7 +65,7 @@ function Register() {
       }
 
       // Redirect to login with success message
-      navigate("/login?registered=true");
+      navigate("/?registered=true");
     } catch (err) {
       console.error("Register error:", err);
       setError(err.message || "An error occurred. Please try again.");
