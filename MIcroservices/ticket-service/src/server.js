@@ -359,6 +359,22 @@ app.post("/internal/sync-user", async (req, res) => {
     res.status(500).json({ error: "Failed to sync user" });
   }
 });
+// ─── INTERNAL: Sync user deletion from user-service ──────────────────────────  ← AJOUTE ÇA
+app.post("/internal/sync-user-delete", async (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: "Missing id" });
+
+  try {
+    await pool.query(
+      "UPDATE users SET deleted_at = NOW() WHERE id = $1",
+      [id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Sync user delete error:", err);
+    res.status(500).json({ error: "Failed to sync deletion" });
+  }
+});
 
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {

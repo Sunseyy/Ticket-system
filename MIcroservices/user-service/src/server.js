@@ -137,8 +137,18 @@ app.delete("/users/:id", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
     await pool.query("COMMIT");
-    res.json({ message: "User soft-deleted" });
-  } catch (err) {
+    // ✅ Notifier le ticket-service (non-blocking)
+    fetch(`http://ticket-service:3002/internal/sync-user-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: targetId }),
+    }).catch(err => console.warn("Sync delete to ticket-service failed:", err.message));
+
+    res.json({ message: "User soft-deleted" })
+
+  }
+
+  catch (err) {
     await pool.query("ROLLBACK");
     console.error("Admin delete user error:", err);
     res.status(500).json({ error: "Failed to delete user" });
