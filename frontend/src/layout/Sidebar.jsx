@@ -32,17 +32,17 @@ export default function Sidebar() {
     user.role === "CLIENT"
       ? clientLinks
       : user.role === "AGENT"
-      ? agentLinks
-      : adminLinks;
+        ? agentLinks
+        : adminLinks;
 
   return (
     <div className="sidebar">
       <div className="sidebar-header">
         {!logoError && (
-          <img 
+          <img
             src={tndLogo}
-            alt="TnD Logo" 
-            className="sidebar-logo" 
+            alt="TnD Logo"
+            className="sidebar-logo"
             onError={() => setLogoError(true)}
           />
         )}
