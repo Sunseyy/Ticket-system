@@ -298,8 +298,8 @@ app.post("/tickets/:id/comments", async (req, res) => {
   const rawUserId = req.body.userId ?? req.body.user_id;
   const rawContent =
     typeof req.body.content === "string" ? req.body.content :
-    typeof req.body.text === "string" ? req.body.text :
-    typeof req.body.comment === "string" ? req.body.comment : "";
+      typeof req.body.text === "string" ? req.body.text :
+        typeof req.body.comment === "string" ? req.body.comment : "";
 
   const userId = Number(rawUserId);
   const content = rawContent.trim();

@@ -380,12 +380,6 @@ function ManageUsers() {
                   <td className="actions-column">
                     <div className="admin-action-group">
                       <button
-                        className="admin-btn admin-btn--view"
-                        onClick={() => handleViewTickets(record)}
-                      >
-                        View Tickets
-                      </button>
-                      <button
                         className="admin-btn admin-btn--danger"
                         onClick={() => handleDeleteUser(record)}
                         disabled={deletingId === record.id || record.id === adminId}

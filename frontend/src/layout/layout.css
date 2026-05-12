@@ -30,12 +30,14 @@
 }
 
 .main-content {
-  margin-left: 250px; /* Adjusted to account for the fixed sidebar width */
+  margin-left: 250px;
+  /* Adjusted to account for the fixed sidebar width */
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: auto;
-  width: calc(100% - 250px); /* Ensures the main content takes the remaining width */
+  width: calc(100% - 250px);
+  /* Ensures the main content takes the remaining width */
 }
 
 .topbar {
