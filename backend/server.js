@@ -329,6 +329,16 @@ app.post("/register", async (req, res) => {
   const { full_name, email, password, role, societyId } = req.body;
 
   try {
+    // Check if email already exists
+    const existingUser = await pool.query(
+      "SELECT id FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: "Email already in use" });
+    }
+
     const hash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
@@ -350,6 +360,14 @@ app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    // Console log all registered emails to see who's who
+    const allUsers = await pool.query("SELECT email FROM users");
+    const emailsList = allUsers.rows.map(u => u.email);
+    console.log("=== All Registered Emails ===");
+    console.log(emailsList);
+    console.log("=============================");
+    console.log(`Login attempt by: ${email}`);
+
     const result = await pool.query(
       "SELECT id, full_name, email, password_hash, role, society_id FROM users WHERE email = $1 AND deleted_at IS NULL",
       [email]
