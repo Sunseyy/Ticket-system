@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   width: 250px;
-  background-color: #00A3FF;
+  background-color: #0181c9b3;
   color: white;
   display: flex;
   flex-direction: column;
@@ -19,7 +19,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 30px;
-  color: #ffffff;
+  color: #000000;
   text-align: center;
 }
 
