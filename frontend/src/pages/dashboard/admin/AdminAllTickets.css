@@ -293,7 +293,7 @@
 }
 
 /* Priority Pills */
-.priority-pill {
+.urgency-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -323,7 +323,7 @@
   box-shadow: 0 2px 8px rgba(22, 101, 52, 0.15);
 }
 
-.priority-unknown {
+.urgency-unknown {
   background: #e2e8f0;
   color: #475569;
 }

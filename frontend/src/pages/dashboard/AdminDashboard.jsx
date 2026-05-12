@@ -26,16 +26,16 @@ const formatStatusLabel = (status) => {
     .join(" ");
 };
 
-const priorityClassName = (priority) => {
+const urgencyClassName = (priority) => {
   const normalized = (priority || "")
     .toLowerCase()
     .replace(/\s+/g, "-")
     .trim();
 
-  return normalized ? `priority-pill priority-${normalized}` : "priority-pill priority-unknown";
+  return normalized ? `urgency-pill urgency-${normalized}` : "urgency-pill urgency-unknown";
 };
 
-const formatPriorityLabel = (priority) => {
+const formatUrgencyLabel = (priority) => {
   if (!priority) return "Unknown";
   return priority
     .toLowerCase()
@@ -322,7 +322,7 @@ function AdminDashboard() {
                     <tr>
                       <th>Ticket</th>
                       <th>Status</th>
-                      <th>Priority</th>
+                      <th>Urgency</th>
                       <th>Category</th>
                       <th>Assigned To</th>
                       <th>Created</th>
@@ -334,7 +334,7 @@ function AdminDashboard() {
                   <tbody>
                     {tickets.map((ticket) => {
                       const statusKey = normalizeStatus(ticket.status);
-                      const priorityKey = priorityClassName(ticket.priority);
+                      const priorityKey = urgencyClassName(ticket.urgency);
                       return (
                         <tr key={ticket.id}>
                           <td>
@@ -352,7 +352,7 @@ function AdminDashboard() {
                             <span className={statusClassName(statusKey)}>{formatStatusLabel(statusKey)}</span>
                           </td>
                           <td>
-                            <span className={priorityKey}>{formatPriorityLabel(ticket.priority)}</span>
+                            <span className={priorityKey}>{formatUrgencyLabel(ticket.urgency)}</span>
                           </td>
                           <td>{ticket.category || <span className="text-muted">-</span>}</td>
                           <td>{ticket.assigned_agent_name || <span className="text-muted">Unassigned</span>}</td>

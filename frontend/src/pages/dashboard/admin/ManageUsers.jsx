@@ -36,16 +36,16 @@ const formatStatusLabel = (status) => {
     .join(" ");
 };
 
-const priorityClassName = (priority) => {
+const urgencyClassName = (priority) => {
   const normalized = (priority || "")
     .toLowerCase()
     .replace(/\s+/g, "-")
     .trim();
 
-  return normalized ? `priority-pill priority-${normalized}` : "priority-pill priority-unknown";
+  return normalized ? `urgency-pill urgency-${normalized}` : "urgency-pill urgency-unknown";
 };
 
-const formatPriorityLabel = (priority) => {
+const formatUrgencyLabel = (priority) => {
   if (!priority) return "Unknown";
   return priority
     .toLowerCase()
@@ -431,7 +431,7 @@ function ManageUsers() {
                       <tr>
                         <th>Ticket</th>
                         <th>Status</th>
-                        <th>Priority</th>
+                        <th>Urgency</th>
                         <th>Updated</th>
                         <th className="actions-column">Action</th>
                       </tr>
@@ -453,8 +453,8 @@ function ManageUsers() {
                             </span>
                           </td>
                           <td>
-                            <span className={priorityClassName(ticket.priority)}>
-                              {formatPriorityLabel(ticket.priority)}
+                            <span className={urgencyClassName(ticket.urgency)}>
+                              {formatUrgencyLabel(ticket.urgency)}
                             </span>
                           </td>
                           <td>{formatDateTime(ticket.updated_at || ticket.created_at)}</td>

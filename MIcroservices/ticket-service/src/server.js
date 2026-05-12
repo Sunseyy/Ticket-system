@@ -47,7 +47,7 @@ app.get("/health", (req, res) => {
 
 // ─── CREATE TICKET ────────────────────────────────────────────────────────────
 app.post("/tickets", async (req, res) => {
-  const { title, description, product, category, department, priority, urgency, productId, userId, userRole, userSocietyId } = req.body;
+  const { title, description, product, category, department, priority = "MEDIUM", urgency, productId, userId, userRole, userSocietyId } = req.body;
 
   if (!title || !description || !product || !category || !department) {
     return res.status(400).json({ error: "Missing required fields" });

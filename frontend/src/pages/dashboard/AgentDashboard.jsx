@@ -26,17 +26,17 @@ const statusClassName = (status) => {
   return `status-pill status-${normalized}`;
 };
 
-const priorityClassName = (priority) => {
+const urgencyClassName = (priority) => {
   const normalized = (priority || "")
     .toLowerCase()
     .replace(/\s+/g, "-")
     .trim();
 
-  if (!normalized) return "priority-pill priority-unknown";
-  return `priority-pill priority-${normalized}`;
+  if (!normalized) return "urgency-pill urgency-unknown";
+  return `urgency-pill urgency-${normalized}`;
 };
 
-const formatPriority = (priority) => {
+const formatUrgency = (priority) => {
   if (!priority) return "Unknown";
   return priority
     .toLowerCase()
@@ -217,7 +217,7 @@ function AgentDashboard() {
                   <tr>
                     <th>Ticket</th>
                     <th>Client</th>
-                    <th>Priority</th>
+                    <th>Urgency</th>
                     <th>Status</th>
                     <th>Assigned To</th>
                     <th>Created</th>
@@ -239,8 +239,8 @@ function AgentDashboard() {
                         </td>
                         <td>{ticket.created_by_name || "-"}</td>
                         <td>
-                          <span className={priorityClassName(ticket.priority)}>
-                            {formatPriority(ticket.priority)}
+                          <span className={urgencyClassName(ticket.urgency)}>
+                            {formatUrgency(ticket.urgency)}
                           </span>
                         </td>
                         <td>

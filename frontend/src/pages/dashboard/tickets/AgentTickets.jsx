@@ -24,17 +24,17 @@ const statusClassName = (status) => {
   return `status-pill status-${normalized}`;
 };
 
-const priorityClassName = (priority) => {
+const urgencyClassName = (priority) => {
   const normalized = (priority || "")
     .toLowerCase()
     .replace(/\s+/g, "-")
     .trim();
 
-  if (!normalized) return "priority-pill priority-unknown";
-  return `priority-pill priority-${normalized}`;
+  if (!normalized) return "urgency-pill urgency-unknown";
+  return `urgency-pill urgency-${normalized}`;
 };
 
-const formatPriority = (priority) => {
+const formatUrgency = (priority) => {
   if (!priority) return "Unknown";
   return priority
     .toLowerCase()
@@ -87,7 +87,7 @@ function AgentTickets() {
         ticket.product,
         ticket.created_by_name,
         ticket.assigned_agent_name,
-        ticket.priority,
+        ticket.urgency,
         ticket.status,
       ]
         .filter(Boolean)
@@ -215,7 +215,7 @@ function AgentTickets() {
                 <th>Client</th>
                 <th>Date</th>
                 <th>Status</th>
-                <th>Priority</th>
+                <th>Urgency</th>
                 <th>Assigned</th>
                 <th>Actions</th>
               </tr>
@@ -237,7 +237,7 @@ function AgentTickets() {
                     <td>{ticket.created_by_name || "Unknown"}</td>
                     <td>{formatDateTime(ticket.updated_at || ticket.created_at)}</td>
                     <td><span className={statusClassName(ticket.status)}>{formatStatusLabel(ticket.status)}</span></td>
-                    <td><span className={priorityClassName(ticket.priority)}>{formatPriority(ticket.priority)}</span></td>
+                    <td><span className={urgencyClassName(ticket.urgency)}>{formatUrgency(ticket.urgency)}</span></td>
                     <td>{ticket.assigned_agent_name || "Unassigned"}</td>
                     <td>
                       <div className="actions-column">

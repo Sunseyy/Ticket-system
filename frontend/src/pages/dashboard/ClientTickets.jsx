@@ -25,17 +25,17 @@ const statusClassName = (status) => {
   return `status-pill status-${normalized}`;
 };
 
-const priorityClassName = (priority) => {
+const urgencyClassName = (priority) => {
   const normalized = (priority || "")
     .toLowerCase()
     .replace(/\s+/g, "-")
     .trim();
 
-  if (!normalized) return "priority-pill priority-unknown";
-  return `priority-pill priority-${normalized}`;
+  if (!normalized) return "urgency-pill urgency-unknown";
+  return `urgency-pill urgency-${normalized}`;
 };
 
-const formatPriority = (priority) => {
+const formatUrgency = (priority) => {
   if (!priority) return "Unknown";
   return priority
     .toLowerCase()
@@ -114,7 +114,7 @@ export default function ClientTickets() {
         ticket.product,
         ticket.category,
         ticket.department,
-        ticket.priority,
+        ticket.urgency,
         ticket.urgency,
         ticket.created_by_name,
         ticket.assigned_agent_name,
@@ -180,7 +180,7 @@ export default function ClientTickets() {
               <tr>
                 <th>Ticket</th>
                 <th>Status</th>
-                <th>Priority</th>
+                <th>Urgency</th>
                 <th>Category</th>
                 <th>Product</th>
                 <th>Department</th>
@@ -208,7 +208,7 @@ export default function ClientTickets() {
                       <span className={statusClassName(statusKey)}>{formatStatusLabel(statusKey)}</span>
                     </td>
                     <td>
-                      <span className={priorityClassName(ticket.priority)}>{formatPriority(ticket.priority)}</span>
+                      <span className={urgencyClassName(ticket.urgency)}>{formatUrgency(ticket.urgency)}</span>
                     </td>
                     <td>{ticket.category || <span className="text-muted">-</span>}</td>
                     <td>{ticket.product || <span className="text-muted">-</span>}</td>

@@ -33,12 +33,12 @@ const normalizePriority = (priority) =>
     .replace(/\s+/g, "-")
     .trim();
 
-const priorityClassName = (priority) => {
+const urgencyClassName = (priority) => {
   const normalized = normalizePriority(priority) || "unknown";
-  return `priority-pill priority-${normalized}`;
+  return `urgency-pill urgency-${normalized}`;
 };
 
-const formatPriorityLabel = (priority) => {
+const formatUrgencyLabel = (priority) => {
   const normalized = normalizePriority(priority);
   if (!normalized) return "Unknown";
   return normalized
@@ -91,7 +91,7 @@ function AdminAllTickets() {
   const priorityOptions = useMemo(() => {
     const unique = new Set();
     tickets.forEach((ticket) => {
-      const normalized = normalizePriority(ticket.priority);
+      const normalized = normalizePriority(ticket.urgency);
       if (normalized) {
         unique.add(normalized);
       }
@@ -113,7 +113,7 @@ function AdminAllTickets() {
         ticket.product,
         ticket.created_by_name,
         ticket.assigned_agent_name,
-        ticket.priority,
+        ticket.urgency,
         ticket.status,
       ]
         .filter(Boolean)
@@ -129,7 +129,7 @@ function AdminAllTickets() {
 
     const matchesPriority = (ticket) => {
       if (priorityFilter === "all") return true;
-      return normalizePriority(ticket.priority) === priorityFilter;
+      return normalizePriority(ticket.urgency) === priorityFilter;
     };
 
     const matchesAssignment = (ticket) => {
@@ -332,7 +332,7 @@ function AdminAllTickets() {
               <option value="all">All</option>
               {priorityOptions.map((priority) => (
                 <option key={priority} value={priority}>
-                  {formatPriorityLabel(priority)}
+                  {formatUrgencyLabel(priority)}
                 </option>
               ))}
             </select>
@@ -363,7 +363,7 @@ function AdminAllTickets() {
                 <th>Ticket</th>
                 <th>Client</th>
                 <th>Status</th>
-                <th>Priority</th>
+                <th>Urgency</th>
                 <th>Assignment</th>
                 <th>Product</th>
                 <th>Department</th>
@@ -393,8 +393,8 @@ function AdminAllTickets() {
                       </span>
                     </td>
                     <td>
-                      <span className={priorityClassName(ticket.priority)}>
-                        {formatPriorityLabel(ticket.priority)}
+                      <span className={urgencyClassName(ticket.urgency)}>
+                        {formatUrgencyLabel(ticket.urgency)}
                       </span>
                     </td>
                     <td>

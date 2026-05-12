@@ -14,12 +14,12 @@ const config = {
   // Server
   port: parseInt(process.env.PORT, 10) || 5000,
   nodeEnv: process.env.NODE_ENV || "development",
-  
+
   // CORS - comma-separated list of allowed origins
-  corsOrigins: process.env.CORS_ORIGINS 
+  corsOrigins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map(origin => origin.trim())
     : ["http://localhost:5173", "http://localhost:80", "http://localhost"],
-  
+
   // Database
   db: {
     host: process.env.DB_HOST || "localhost",
@@ -28,7 +28,7 @@ const config = {
     user: process.env.DB_USER || "postgres",
     password: process.env.DB_PASSWORD || "postgres",
   },
-  
+
   // File uploads
   uploadDir: process.env.UPLOAD_DIR || path.join(__dirname, "uploads"),
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10 * 1024 * 1024, // 10MB default
@@ -50,7 +50,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc)
     if (!origin) return callback(null, true);
-    
+
     if (config.corsOrigins.includes(origin) || config.corsOrigins.includes("*")) {
       callback(null, true);
     } else {
@@ -76,14 +76,14 @@ if (!fs.existsSync(config.uploadDir)) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, config.uploadDir); 
+    cb(null, config.uploadDir);
   },
   filename: (req, file, cb) => {
     // Append the timestamp to prevent file name collisions
     cb(null, Date.now() + path.extname(file.originalname));
   }
 });
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: config.maxFileSize }
 });
@@ -171,11 +171,11 @@ app.delete("/tickets/:id", async (req, res) => {
     }
 
     await pool.query("BEGIN");
-    
+
     // Soft delete associated comments and attachments
     await pool.query(`UPDATE comments SET deleted_at = NOW() WHERE ticket_id = $1`, [id]);
     await pool.query(`UPDATE attachments SET deleted_at = NOW() WHERE ticket_id = $1`, [id]);
-    
+
     // Soft delete the ticket
     const deleteResult = await pool.query(`UPDATE tickets SET deleted_at = NOW() WHERE id = $1 RETURNING id`, [id]);
 
@@ -360,14 +360,6 @@ app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Console log all registered emails to see who's who
-    const allUsers = await pool.query("SELECT email FROM users");
-    const emailsList = allUsers.rows.map(u => u.email);
-    console.log("=== All Registered Emails ===");
-    console.log(emailsList);
-    console.log("=============================");
-    console.log(`Login attempt by: ${email}`);
-
     const result = await pool.query(
       "SELECT id, full_name, email, password_hash, role, society_id FROM users WHERE email = $1 AND deleted_at IS NULL",
       [email]
@@ -396,7 +388,7 @@ app.post("/login", async (req, res) => {
 /* -------- CREATE TICKET -------- */
 app.post("/tickets", async (req, res) => {
   const {
-    title, description, product, category, department, priority, urgency, productId, userId, userRole, userSocietyId
+    title, description, product, category, department, priority = "MEDIUM", urgency, productId, userId, userRole, userSocietyId
   } = req.body;
 
   if (!["CLIENT", "AGENT"].includes(userRole)) {
@@ -675,8 +667,8 @@ app.post("/tickets/:id/comments", async (req, res) => {
   const rawUserId = req.body.userId ?? req.body.user_id;
   const rawContent =
     typeof req.body.content === "string" ? req.body.content :
-    typeof req.body.text === "string" ? req.body.text :
-    typeof req.body.comment === "string" ? req.body.comment : "";
+      typeof req.body.text === "string" ? req.body.text :
+        typeof req.body.comment === "string" ? req.body.comment : "";
 
   const userId = Number(rawUserId);
   const content = rawContent.trim();
@@ -744,7 +736,7 @@ app.post("/tickets/:id/attachments", upload.single("file"), async (req, res) => 
   const file = req.file;
 
   if (!Number.isInteger(userId)) {
-    if (file) fs.unlinkSync(file.path); 
+    if (file) fs.unlinkSync(file.path);
     return res.status(400).json({ error: "Valid userId is required" });
   }
 
@@ -1044,7 +1036,7 @@ const gracefulShutdown = (signal) => {
       process.exit(0);
     });
   });
-  
+
   // Force close after 10 seconds
   setTimeout(() => {
     console.error("Forced shutdown after timeout.");

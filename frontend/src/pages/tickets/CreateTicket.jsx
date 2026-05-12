@@ -13,7 +13,7 @@ export default function CreateTicket() {
     title: "",
     description: "",
     product: "",
-    priority: "MEDIUM",
+    urgency: "Medium",
     category: "",
     department: "",
     productId: null,
@@ -221,10 +221,10 @@ export default function CreateTicket() {
           </div>
 
           <div className="form-group">
-            <label>Priority:</label>
+            <label>Urgency:</label>
             <select
-              name="priority"
-              value={formData.priority}
+              name="urgency"
+              value={formData.urgency}
               onChange={handleChange}
               className="form-input"
             >

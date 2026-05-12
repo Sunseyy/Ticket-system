@@ -286,15 +286,14 @@ function TicketDetails() {
 
   const statusLabel = formatStatusLabel(ticket.status);
   const statusClass = normalizeForClass(ticket.status);
-  const priorityLabel = ticket.priority ? formatStatusLabel(ticket.priority) : null;
-  const priorityClass = normalizeForClass(ticket.priority);
+  const priorityLabel = ticket.urgency ? formatStatusLabel(ticket.urgency) : null;
+  const priorityClass = normalizeForClass(ticket.urgency);
   const ticketCode =
     ticket.ticket_code ||
     ticket.reference ||
     (ticket.id ? `T-${String(ticket.id).padStart(4, "0")}` : "Ticket");
 
   const detailFields = [
-    { label: "Priority", value: ticket.priority || "Not set" },
     { label: "Assigned To", value: ticket.assigned_agent_name || "Unassigned" },
     { label: "Reporter", value: ticket.created_by_name || "Unknown" },
     { label: "Status", value: statusLabel },

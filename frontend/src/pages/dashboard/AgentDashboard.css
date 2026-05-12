@@ -222,7 +222,7 @@
   color: #475569;
 }
 
-.priority-pill {
+.urgency-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -251,7 +251,7 @@
   color: #15803d;
 }
 
-.priority-unknown {
+.urgency-unknown {
   background: #e2e8f0;
   color: #475569;
 }
