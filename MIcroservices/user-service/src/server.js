@@ -143,7 +143,12 @@ app.delete("/users/:id", async (req, res) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: targetId }),
     }).catch(err => console.warn("Sync delete to ticket-service failed:", err.message));
-
+    
+  fetch(`http://auth-service:3001/internal/sync-user-delete`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ id: targetId }),
+}).catch(err => console.warn("Sync delete to auth-service failed:", err.message));
     res.json({ message: "User soft-deleted" })
 
   }
