@@ -12,6 +12,8 @@
     "pg": "8.11.3"
   },
   "overrides": {
-    "tar": "7.5.11"
+    "tar": "7.5.11",
+    "body-parser": "1.20.3",
+    "path-to-regexp": "0.1.13"
   }
 }
