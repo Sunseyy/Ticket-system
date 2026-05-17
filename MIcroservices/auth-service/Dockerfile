@@ -8,7 +8,6 @@ RUN npm install --omit=dev
 # ── Stage 2 : runtime ─────────────────────────────────────────
 FROM node:20-alpine AS runtime
 
-
 WORKDIR /app
 
 # Copier les dépendances du builder
