@@ -57,7 +57,21 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-
+// ─── INTERNAL: Sync user deletion ─────────────────────────────────────────────
+app.post("/internal/sync-user-delete", async (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: "Missing id" });
+  try {
+    await pool.query(
+      "UPDATE users SET deleted_at = NOW() WHERE id = $1",
+      [id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Sync delete error:", err);
+    res.status(500).json({ error: "Failed to sync deletion" });
+  }
+});
 /* ───── REGISTER ───── */
 app.post("/register", async (req, res) => {
   const { full_name, email, password, role, societyId } = req.body;
