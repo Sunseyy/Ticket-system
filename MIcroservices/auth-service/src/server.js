@@ -2,7 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require('bcryptjs');
 const { Pool } = require("pg");
-
+const logger = require('./logger');
+const morgan = require('morgan');
+const { register, httpRequestDuration } = require('./metrics');
 const app = express();
 
 /* ───────────────────── CONFIG ───────────────────── */
@@ -37,7 +39,25 @@ app.use(
 );
 
 app.use(express.json());
+// Morgan → Winston
+app.use(morgan('combined', {
+  stream: { write: (msg) => logger.info(msg.trim()) }
+}));
 
+// Middleware métriques
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.path, status: res.statusCode });
+  });
+  next();
+});
+
+// Endpoint Prometheus
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 /* ───────────────────── DATABASE ───────────────────── */
 
 const pool = new Pool({
@@ -68,7 +88,7 @@ app.post("/internal/sync-user-delete", async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("Sync delete error:", err);
+    logger.error("Sync delete error:", err);
     res.status(500).json({ error: "Failed to sync deletion" });
   }
 });
@@ -129,7 +149,7 @@ app.post("/register", async (req, res) => {
     res.status(201).json(newUser);
 
   } catch (err) {
-    console.error("Register error:", err);
+    logger.error("Register error:", err);
 
     if (err.code === "23505") {
       return res.status(400).json({ error: "Email already exists" });
@@ -174,7 +194,7 @@ app.post("/login", async (req, res) => {
     res.json(safeUser);
 
   } catch (err) {
-    console.error("Login error:", err);
+    logger.error("Login error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -182,13 +202,13 @@ app.post("/login", async (req, res) => {
 /* ───────────────────── SERVER ───────────────────── */
 
 const server = app.listen(config.port, "0.0.0.0", () => {
-  console.log(`✅ auth-service running on port ${config.port}`);
+  logger.info(`✅ auth-service running on port ${config.port}`);
 });
 
 /* ───────────────────── SHUTDOWN ───────────────────── */
 
 const shutdown = (signal) => {
-  console.log(`${signal} received — shutting down`);
+  logger.info(`${signal} received — shutting down`);
   server.close(() => {
     pool.end(() => process.exit(0));
   });
