@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rapport Observabilite - Ticket System - 2026-05-29 14:10:27 UTC</title>
+<title>Rapport Observabilite - Ticket System - 2026-05-29 14:24:51 UTC</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Segoe UI,Arial,sans-serif;background:#edf2f7;color:#1a202c;font-size:14px}
@@ -66,7 +66,7 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
 <div class="header">
   <h1>Rapport d Observabilite — Ticket System</h1>
   <div class="sub">Architecture Microservices · OpenShift Container Platform · Namespace: ticket-system</div>
-  <div class="ts">Genere le 2026-05-29 14:10:27 UTC</div>
+  <div class="ts">Genere le 2026-05-29 14:24:51 UTC</div>
 </div>
 <div class="wrap">
 
@@ -87,20 +87,20 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   </div>
   <div class="login-divider"></div>
   <div class="login-stat">
-    <div class="n" style="color:#ed8936">0</div>
+    <div class="n" style="color:#e53e3e">10</div>
     <div class="l">Echecs de connexion</div>
   </div>
   <div class="login-divider"></div>
   <div class="login-stat" style="flex:2;text-align:left;padding-left:8px">
     <div style="font-size:.8rem;color:#4a5568;line-height:1.6">
       Seuil brute force : <b>5 echecs / 5 min</b><br>
-      <span style='color:#48bb78'>Normal — sous le seuil</span>
+      <span style='color:#e53e3e;font-weight:700'>ALERTE — seuil depasse !</span>
     </div>
   </div>
 </div>
 
 <div class="section-title">Alertes actives</div>
-<div class='alert alert-warn'><b>auth-service</b> — latence elevee : <b>250.21 ms</b> (seuil 50 ms). Les utilisateurs peuvent ressentir des lenteurs.</div>
+<div class='alert alert-crit'><div><b>Tentatives de connexion suspectes</b> — 10 echecs de login en 5 minutes (seuil: 5). Possible attaque par force brute sur auth-service.</div></div><div class='alert alert-warn'><b>auth-service</b> — latence elevee : <b>183.46 ms</b> (seuil 50 ms). Les utilisateurs peuvent ressentir des lenteurs.</div>
 
 <div class="section-title">Metriques par service</div>
 
@@ -114,31 +114,31 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>72.4 MB</div>
-        <div class='progress-bar'><div style='width:36%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>64.3 MB</div>
+        <div class='progress-bar'><div style='width:32%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>1.61%</div>
+        <div class='metric-value'>1.88%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>12144</div>
+        <div class='metric-value'>19</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#ed8936'>250.21 ms</div>
+        <div class='metric-value' style='color:#ed8936'>183.46 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
     <div class='error-row'>
       <span>Erreurs HTTP:</span>
-      <span style='color:#ed8936'>4xx: <b>8</b></span>
-      <span style='color:#ed8936'>5xx: <b>0</b></span>
-      <span class='badge-warn'>Requetes invalides</span>
+      <span style='color:#ed8936'>4xx: <b>5</b></span>
+      <span style='color:#e53e3e'>5xx: <b>5</b></span>
+      <span class='badge-err'>CRITIQUE — verifier les logs</span>
     </div>
   </div>
   <div class='svc-card' style='border-top:4px solid #48bb78'>
@@ -151,23 +151,23 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>70.2 MB</div>
+        <div class='metric-value'>69.8 MB</div>
         <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.64%</div>
+        <div class='metric-value'>0.59%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>4643</div>
+        <div class='metric-value'>4828</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>5.02 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.97 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -188,23 +188,23 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>70.5 MB</div>
-        <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>71.2 MB</div>
+        <div class='progress-bar'><div style='width:36%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.57%</div>
+        <div class='metric-value'>0.53%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>4648</div>
+        <div class='metric-value'>4837</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>3.38 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.21 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -225,23 +225,23 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>69.2 MB</div>
-        <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>66.8 MB</div>
+        <div class='progress-bar'><div style='width:33%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.61%</div>
+        <div class='metric-value'>0.70%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>4642</div>
+        <div class='metric-value'>4830</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>3.50 ms</div>
+        <div class='metric-value' style='color:#48bb78'>5.93 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -262,23 +262,23 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>69.6 MB</div>
+        <div class='metric-value'>69.1 MB</div>
         <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.61%</div>
+        <div class='metric-value'>0.58%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>4639</div>
+        <div class='metric-value'>4828</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>3.15 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.02 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -324,7 +324,7 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
 
 </div>
 <div class="footer">
-  Ticket System v2.0 &nbsp;·&nbsp; OpenShift Container Platform &nbsp;·&nbsp; Namespace: ticket-system &nbsp;·&nbsp; 5 microservices &nbsp;·&nbsp; 2026-05-29 14:10:27 UTC
+  Ticket System v2.0 &nbsp;·&nbsp; OpenShift Container Platform &nbsp;·&nbsp; Namespace: ticket-system &nbsp;·&nbsp; 5 microservices &nbsp;·&nbsp; 2026-05-29 14:24:51 UTC
 </div>
 </body>
 </html>
