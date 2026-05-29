@@ -2,39 +2,42 @@
 PROM="http://localhost:9090"
 NOW=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
 
+# -------------------------------------------------------
 # Fetch metrics
+# -------------------------------------------------------
 wget -qO- "$PROM/api/v1/query?query=process_resident_memory_bytes" > /tmp/mem.json
 wget -qO- "$PROM/api/v1/query?query=rate(process_cpu_seconds_total[5m])*100" > /tmp/cpu.json
 wget -qO- "$PROM/api/v1/query?query=sum+by(job)(http_request_duration_seconds_count)" > /tmp/req.json
 wget -qO- "$PROM/api/v1/query?query=sum+by(job)(rate(http_request_duration_seconds_sum[5m]))/sum+by(job)(rate(http_request_duration_seconds_count[5m]))*1000" > /tmp/lat.json
 wget -qO- "$PROM/api/v1/query?query=sum+by(job,status)(http_request_duration_seconds_count{status=~'4..|5..'})" > /tmp/err.json
 wget -qO- "$PROM/api/v1/query?query=up" > /tmp/up.json
-wget -qO- "$PROM/api/v1/query?query=process_open_fds" > /tmp/fds.json
+# Brute force: failed logins in last 5 minutes
+wget -qO- "$PROM/api/v1/query?query=increase(auth_login_attempts_total{status='failure'}[5m])" > /tmp/login_fail.json
+# Total login successes (for info)
+wget -qO- "$PROM/api/v1/query?query=increase(auth_login_attempts_total{status='success'}[5m])" > /tmp/login_ok.json
 
 # -------------------------------------------------------
-# FIXED: extract value for a given job from a json file
-# The old grep broke because "job" is inside "metric":{} 
-# but "value" is outside — [^}]* can't cross that boundary.
-# New approach: find the line/chunk containing the job name,
-# then extract the last quoted number which is always the value.
+# Parsers
 # -------------------------------------------------------
 get_val() {
-  # $1 = job name, $2 = file base name (without .json)
   grep -o "\"job\":\"$1\"[^]]*\]" /tmp/$2.json | grep -o "\"[0-9.eE+\-]*\"\]$" | tr -d '"[]' | head -1
 }
-
 get_err() {
-  # $1 = job, $2 = status regex label (e.g. 4xx stored as actual status codes)
-  grep -o "\"job\":\"$1\",\"status\":\"[^\"]*\"[^]]*\]" /tmp/err.json | grep "$2" | grep -o "\"[0-9.]*\"\]$" | tr -d '"[]' | head -1
+  grep -o "\"job\":\"$1\",\"status\":\"[^\"]*\"[^]]*\]" /tmp/err.json | grep "\"$2" | grep -o "\"[0-9.]*\"\]$" | tr -d '"[]' | head -1
 }
-
-# up metric: value is always "1" or "0" at end of its result object
 get_up() {
   grep -o "\"job\":\"$1\"[^]]*\]" /tmp/up.json | grep -o "\"[01]\"\]$" | tr -d '"[]' | head -1
 }
+# Sum all failure reasons for brute force
+get_login_failures() {
+  grep -o "\"[0-9.eE+\-]*\"\]" /tmp/login_fail.json | tr -d '"[]' | awk '{s+=$1} END {printf "%.0f", s}'
+}
+get_login_success() {
+  grep -o "\"[0-9.eE+\-]*\"\]" /tmp/login_ok.json | tr -d '"[]' | awk '{s+=$1} END {printf "%.0f", s}'
+}
 
 mb()  { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.1f", $1/1024/1024}'; }
-pct() { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.4f", $1}'; }
+pct() { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.2f", $1}'; }
 ms()  { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.2f", $1}'; }
 orz() { [ -z "$1" ] && echo "0" || echo "$1" | awk '{printf "%.0f", $1}'; }
 
@@ -48,12 +51,22 @@ ALERTS=""
 SERVICES_DOWN=0
 SERVICES_UP=0
 
+# Brute force check
+LOGIN_FAILURES=$(get_login_failures)
+LOGIN_SUCCESS=$(get_login_success)
+[ -z "$LOGIN_FAILURES" ] && LOGIN_FAILURES=0
+[ -z "$LOGIN_SUCCESS" ] && LOGIN_SUCCESS=0
+
+if [ "$LOGIN_FAILURES" -ge 5 ] 2>/dev/null; then
+  ALERTS="$ALERTS<div class='alert alert-crit'><div><b>Tentatives de connexion suspectes</b> — ${LOGIN_FAILURES} echecs de login en 5 minutes (seuil: 5). Possible attaque par force brute sur auth-service.</div></div>"
+fi
+
 for svc in $SERVICES; do
   up_val=$(get_up $svc)
 
   if [ "$up_val" != "1" ]; then
     SERVICES_DOWN=$((SERVICES_DOWN+1))
-    ALERTS="$ALERTS<div class='alert alert-crit'>Service <b>$svc</b> est DOWN — verifier le pod et les logs</div>"
+    ALERTS="$ALERTS<div class='alert alert-crit'><b>$svc</b> est DOWN — le service ne repond plus. Verifier le pod : <code>oc get pods -n ticket-system</code></div>"
   else
     SERVICES_UP=$((SERVICES_UP+1))
   fi
@@ -65,15 +78,15 @@ for svc in $SERVICES; do
 
   if [ -n "$mem" ]; then
     echo "$mem" | awk '{if($1>157286400) exit 0; exit 1}' && \
-      ALERTS="$ALERTS<div class='alert alert-warn'>Memoire elevee sur <b>$svc</b>: ${mem_mb} MB (seuil: 150 MB)</div>"
+      ALERTS="$ALERTS<div class='alert alert-warn'><b>$svc</b> — memoire elevee : <b>${mem_mb} MB</b> (seuil 150 MB). Risque de crash si la tendance continue.</div>"
   fi
   if [ -n "$lat" ]; then
     echo "$lat" | awk '{if($1>50) exit 0; exit 1}' && \
-      ALERTS="$ALERTS<div class='alert alert-warn'>Latence elevee sur <b>$svc</b>: ${lat_ms} ms (seuil: 50 ms)</div>"
+      ALERTS="$ALERTS<div class='alert alert-warn'><b>$svc</b> — latence elevee : <b>${lat_ms} ms</b> (seuil 50 ms). Les utilisateurs peuvent ressentir des lenteurs.</div>"
   fi
 done
 
-[ -z "$ALERTS" ] && ALERTS="<div class='alert alert-ok'>Aucune alerte — tous les services fonctionnent normalement</div>"
+[ -z "$ALERTS" ] && ALERTS="<div class='alert alert-ok'>Aucune alerte — tous les services fonctionnent normalement.</div>"
 
 KPI_UP="${SERVICES_UP}/5"
 KPI_COLOR="#48bb78"
@@ -119,7 +132,7 @@ for svc in $SERVICES; do
 
   err_badge=""
   [ "$e5" != "0" ] && err_badge="<span class='badge-err'>CRITIQUE — verifier les logs</span>"
-  [ "$e4" != "0" ] && [ "$e5" = "0" ] && err_badge="<span class='badge-warn'>Requetes invalides detectees</span>"
+  [ "$e4" != "0" ] && [ "$e5" = "0" ] && err_badge="<span class='badge-warn'>Requetes invalides</span>"
   [ "$e4" = "0" ] && [ "$e5" = "0" ] && err_badge="<span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>"
 
   PORT=$(echo $PORTS | cut -d' ' -f$i)
@@ -128,8 +141,7 @@ for svc in $SERVICES; do
   <div class='svc-card' style='border-top:4px solid $border_color'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span class='svc-name'>$svc</span>
-        $status_badge
+        <span class='svc-name'>$svc</span>$status_badge
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: $PORT</span>
     </div>
@@ -165,16 +177,14 @@ for svc in $SERVICES; do
   </div>"
 done
 
-# -------------------------------------------------------
 # Log commands
-# -------------------------------------------------------
 LOG_CMDS=""
 for svc in $SERVICES; do
   LOG_CMDS="$LOG_CMDS<div class='cmd-row'><span class='cmd-label'>$svc</span><code>oc logs -n ticket-system deployment/$svc --tail=50</code></div>"
 done
 
 # -------------------------------------------------------
-# HTML report
+# HTML
 # -------------------------------------------------------
 cat > /tmp/report.html << HTML
 <!DOCTYPE html>
@@ -197,11 +207,16 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#edf2f7;color:#1a202c;font
 .kpi{background:white;border-radius:10px;padding:16px;text-align:center;border:1px solid #e2e8f0}
 .kpi .n{font-size:1.7rem;font-weight:800}
 .kpi .l{font-size:.7rem;color:#718096;margin-top:2px;text-transform:uppercase}
-.alert{padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:.83rem;display:flex;align-items:center;gap:8px}
-.alert::before{font-size:1rem}
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:8px;font-size:.83rem;display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.alert::before{font-size:1.1rem;margin-top:1px;flex-shrink:0}
 .alert-ok{background:#f0fff4;color:#276749;border:1px solid #9ae6b4}.alert-ok::before{content:'✓'}
 .alert-warn{background:#fffbeb;color:#744210;border:1px solid #fbd38d}.alert-warn::before{content:'⚠'}
 .alert-crit{background:#fff5f5;color:#742a2a;border:1px solid #feb2b2}.alert-crit::before{content:'✕'}
+.login-box{background:white;border-radius:10px;border:1px solid #e2e8f0;padding:16px;display:flex;gap:24px;align-items:center;margin-bottom:4px}
+.login-stat{text-align:center;flex:1}
+.login-stat .n{font-size:1.5rem;font-weight:800}
+.login-stat .l{font-size:.7rem;color:#718096;text-transform:uppercase;margin-top:2px}
+.login-divider{width:1px;background:#e2e8f0;height:40px}
 .svc-card{background:white;border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid #e2e8f0}
 .svc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .svc-name{font-weight:700;font-size:.95rem}
@@ -219,15 +234,21 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#edf2f7;color:#1a202c;font
 .cmd-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f0f4f8;font-size:.8rem}
 .cmd-label{font-weight:700;color:#2d6a9f;min-width:150px}
 code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-family:monospace;color:#2d3748}
-.pipe-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;background:white;border-radius:10px;padding:18px;border:1px solid #e2e8f0;margin-bottom:4px}
+.debug-box{background:#1a202c;color:#e2e8f0;border-radius:10px;padding:16px;font-family:monospace;font-size:.75rem;line-height:1.8}
+.debug-box .cmd{color:#68d391}
+.debug-box .comment{color:#718096}
+.pipe-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;background:white;border-radius:10px;padding:18px;border:1px solid #e2e8f0}
 .pipe-box{background:#ebf8ff;border:1.5px solid #90cdf4;border-radius:8px;padding:8px 14px;text-align:center}
 .pipe-box .pt{font-size:.8rem;font-weight:700;color:#1e3a5f}
 .pipe-box .ps{font-size:.65rem;color:#4a5568;margin-top:2px}
 .arr{color:#90cdf4;font-size:1.3rem}
-.debug-box{background:#1a202c;color:#e2e8f0;border-radius:10px;padding:16px;font-family:monospace;font-size:.75rem;line-height:1.8}
-.debug-box .cmd{color:#68d391}
-.debug-box .comment{color:#718096}
 .footer{text-align:center;padding:24px;color:#a0aec0;font-size:.72rem;border-top:1px solid #e2e8f0;margin-top:24px}
+@media print{
+  body{background:white}
+  .wrap{max-width:100%;padding:16px}
+  .debug-box{font-size:.65rem}
+  .header{padding:20px 24px}
+}
 </style>
 </head>
 <body>
@@ -247,6 +268,26 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   <div class="kpi"><div class="n" style="color:#38b2ac">OpenShift</div><div class="l">Plateforme</div></div>
 </div>
 
+<div class="section-title">Activite de connexion (5 dernieres minutes)</div>
+<div class="login-box">
+  <div class="login-stat">
+    <div class="n" style="color:#48bb78">$LOGIN_SUCCESS</div>
+    <div class="l">Connexions reussies</div>
+  </div>
+  <div class="login-divider"></div>
+  <div class="login-stat">
+    <div class="n" style="color:$([ "$LOGIN_FAILURES" -ge 5 ] 2>/dev/null && echo '#e53e3e' || echo '#ed8936')">$LOGIN_FAILURES</div>
+    <div class="l">Echecs de connexion</div>
+  </div>
+  <div class="login-divider"></div>
+  <div class="login-stat" style="flex:2;text-align:left;padding-left:8px">
+    <div style="font-size:.8rem;color:#4a5568;line-height:1.6">
+      Seuil brute force : <b>5 echecs / 5 min</b><br>
+      $([ "$LOGIN_FAILURES" -ge 5 ] 2>/dev/null && echo "<span style='color:#e53e3e;font-weight:700'>ALERTE — seuil depasse !</span>" || echo "<span style='color:#48bb78'>Normal — sous le seuil</span>")
+    </div>
+  </div>
+</div>
+
 <div class="section-title">Alertes actives</div>
 $ALERTS
 
@@ -257,21 +298,19 @@ $SVC_ROWS
 <div class="pipe-flow">
   <div class="pipe-box"><div class="pt">Node.js + Express</div><div class="ps">Winston + Morgan</div></div>
   <div class="arr">→</div>
-  <div class="pipe-box"><div class="pt">Logs JSON</div><div class="ps">Horodates + niveau</div></div>
-  <div class="arr">+</div>
   <div class="pipe-box"><div class="pt">prom-client</div><div class="ps">Metriques /metrics</div></div>
   <div class="arr">→</div>
-  <div class="pipe-box"><div class="pt">Prometheus</div><div class="ps">Scrape 15s</div></div>
+  <div class="pipe-box"><div class="pt">Prometheus</div><div class="ps">Scrape toutes 15s</div></div>
   <div class="arr">→</div>
-  <div class="pipe-box"><div class="pt">Ce rapport</div><div class="ps">Auto-genere</div></div>
+  <div class="pipe-box"><div class="pt">gen_report.sh</div><div class="ps">Rapport HTML + PDF</div></div>
 </div>
 
-<div class="section-title">Commandes de debogage utiles</div>
+<div class="section-title">Commandes de debogage</div>
 <div class="debug-box">
-  <div><span class="comment"># Voir les logs en temps reel d un service</span></div>
+  <div><span class="comment"># Voir les logs en temps reel</span></div>
   <div><span class="cmd">oc logs -n ticket-system deployment/auth-service -f</span></div>
   <div>&nbsp;</div>
-  <div><span class="comment"># Voir les derniers logs d erreur</span></div>
+  <div><span class="comment"># Filtrer les erreurs uniquement</span></div>
   <div><span class="cmd">oc logs -n ticket-system deployment/auth-service --tail=100 | grep error</span></div>
   <div>&nbsp;</div>
   <div><span class="comment"># Etat de tous les pods</span></div>
@@ -280,17 +319,12 @@ $SVC_ROWS
   <div><span class="comment"># Redemarrer un service</span></div>
   <div><span class="cmd">oc rollout restart deployment/auth-service -n ticket-system</span></div>
   <div>&nbsp;</div>
-  <div><span class="comment"># Voir les evenements du namespace (crashes, OOM, etc)</span></div>
+  <div><span class="comment"># Evenements recents (crashes, OOM...)</span></div>
   <div><span class="cmd">oc get events -n ticket-system --sort-by=.lastTimestamp | tail -20</span></div>
-  <div>&nbsp;</div>
-  <div><span class="comment"># Regenerer ce rapport</span></div>
-  <div><span class="cmd">cd ~/Ticket-system && git pull && oc exec -n ticket-system \$(oc get pod -n ticket-system -l app=prometheus -o jsonpath='{.items[0].metadata.name}') -- sh -c "\$(cat Monitoring/gen_report.sh)" && oc cp ticket-system/\$(oc get pod -n ticket-system -l app=prometheus -o jsonpath='{.items[0].metadata.name}'):/tmp/report.html ./report.html && git add report.html && git commit -m "rapport \$(date +%Y%m%d-%H%M)" && git push</span></div>
 </div>
 
-<div class="section-title">Logs par service — commandes rapides</div>
-<div style="background:white;border-radius:10px;padding:16px;border:1px solid #e2e8f0">
-$LOG_CMDS
-</div>
+<div class="section-title">Logs par service — acces rapide</div>
+<div style="background:white;border-radius:10px;padding:16px;border:1px solid #e2e8f0">$LOG_CMDS</div>
 
 </div>
 <div class="footer">
@@ -300,4 +334,31 @@ $LOG_CMDS
 </html>
 HTML
 
-echo "rapport genere avec succes — /tmp/report.html"
+echo "HTML genere — /tmp/report.html"
+
+# -------------------------------------------------------
+# PDF — tries chromium then wkhtmltopdf
+# -------------------------------------------------------
+PDF_OK=0
+for BIN in chromium-browser chromium google-chrome; do
+  if command -v $BIN > /dev/null 2>&1; then
+    $BIN --headless --no-sandbox --disable-gpu \
+      --print-to-pdf=/tmp/report.pdf \
+      --print-to-pdf-no-header \
+      "file:///tmp/report.html" 2>/dev/null && PDF_OK=1 && break
+  fi
+done
+
+if [ "$PDF_OK" = "0" ] && command -v wkhtmltopdf > /dev/null 2>&1; then
+  wkhtmltopdf --quiet --page-size A4 --margin-top 10 --margin-bottom 10 \
+    --margin-left 10 --margin-right 10 \
+    /tmp/report.html /tmp/report.pdf 2>/dev/null && PDF_OK=1
+fi
+
+if [ "$PDF_OK" = "1" ]; then
+  echo "PDF genere  — /tmp/report.pdf"
+else
+  echo "PDF non disponible — installe chromium ou wkhtmltopdf dans le pod pour activer"
+  echo "  dnf install -y chromium   (RHEL/UBI)"
+  echo "  apt install -y chromium   (Debian/Ubuntu)"
+fi
