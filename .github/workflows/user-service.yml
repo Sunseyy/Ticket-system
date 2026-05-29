@@ -61,3 +61,8 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
           skip-dirs: usr/local/lib/node_modules/npm,opt/yarn-v1.22.22
+      - name: Install oc CLI
+        run: |
+          curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | tar xz
+          sudo mv oc /usr/local/bin/
+          oc version --client
