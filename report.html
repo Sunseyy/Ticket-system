@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rapport Observabilite - Ticket System - 2026-05-29 09:33:57 UTC</title>
+<title>Rapport Observabilite - Ticket System - 2026-05-29 14:07:43 UTC</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Segoe UI,Arial,sans-serif;background:#edf2f7;color:#1a202c;font-size:14px}
@@ -18,11 +18,16 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#edf2f7;color:#1a202c;font
 .kpi{background:white;border-radius:10px;padding:16px;text-align:center;border:1px solid #e2e8f0}
 .kpi .n{font-size:1.7rem;font-weight:800}
 .kpi .l{font-size:.7rem;color:#718096;margin-top:2px;text-transform:uppercase}
-.alert{padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:.83rem;display:flex;align-items:center;gap:8px}
-.alert::before{font-size:1rem}
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:8px;font-size:.83rem;display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.alert::before{font-size:1.1rem;margin-top:1px;flex-shrink:0}
 .alert-ok{background:#f0fff4;color:#276749;border:1px solid #9ae6b4}.alert-ok::before{content:'✓'}
 .alert-warn{background:#fffbeb;color:#744210;border:1px solid #fbd38d}.alert-warn::before{content:'⚠'}
 .alert-crit{background:#fff5f5;color:#742a2a;border:1px solid #feb2b2}.alert-crit::before{content:'✕'}
+.login-box{background:white;border-radius:10px;border:1px solid #e2e8f0;padding:16px;display:flex;gap:24px;align-items:center;margin-bottom:4px}
+.login-stat{text-align:center;flex:1}
+.login-stat .n{font-size:1.5rem;font-weight:800}
+.login-stat .l{font-size:.7rem;color:#718096;text-transform:uppercase;margin-top:2px}
+.login-divider{width:1px;background:#e2e8f0;height:40px}
 .svc-card{background:white;border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid #e2e8f0}
 .svc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .svc-name{font-weight:700;font-size:.95rem}
@@ -40,22 +45,28 @@ body{font-family:Segoe UI,Arial,sans-serif;background:#edf2f7;color:#1a202c;font
 .cmd-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f0f4f8;font-size:.8rem}
 .cmd-label{font-weight:700;color:#2d6a9f;min-width:150px}
 code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-family:monospace;color:#2d3748}
-.pipe-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;background:white;border-radius:10px;padding:18px;border:1px solid #e2e8f0;margin-bottom:4px}
+.debug-box{background:#1a202c;color:#e2e8f0;border-radius:10px;padding:16px;font-family:monospace;font-size:.75rem;line-height:1.8}
+.debug-box .cmd{color:#68d391}
+.debug-box .comment{color:#718096}
+.pipe-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;background:white;border-radius:10px;padding:18px;border:1px solid #e2e8f0}
 .pipe-box{background:#ebf8ff;border:1.5px solid #90cdf4;border-radius:8px;padding:8px 14px;text-align:center}
 .pipe-box .pt{font-size:.8rem;font-weight:700;color:#1e3a5f}
 .pipe-box .ps{font-size:.65rem;color:#4a5568;margin-top:2px}
 .arr{color:#90cdf4;font-size:1.3rem}
-.debug-box{background:#1a202c;color:#e2e8f0;border-radius:10px;padding:16px;font-family:monospace;font-size:.75rem;line-height:1.8}
-.debug-box .cmd{color:#68d391}
-.debug-box .comment{color:#718096}
 .footer{text-align:center;padding:24px;color:#a0aec0;font-size:.72rem;border-top:1px solid #e2e8f0;margin-top:24px}
+@media print{
+  body{background:white}
+  .wrap{max-width:100%;padding:16px}
+  .debug-box{font-size:.65rem}
+  .header{padding:20px 24px}
+}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>Rapport d Observabilite — Ticket System</h1>
   <div class="sub">Architecture Microservices · OpenShift Container Platform · Namespace: ticket-system</div>
-  <div class="ts">Genere le 2026-05-29 09:33:57 UTC</div>
+  <div class="ts">Genere le 2026-05-29 14:07:43 UTC</div>
 </div>
 <div class="wrap">
 
@@ -68,39 +79,58 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   <div class="kpi"><div class="n" style="color:#38b2ac">OpenShift</div><div class="l">Plateforme</div></div>
 </div>
 
+<div class="section-title">Activite de connexion (5 dernieres minutes)</div>
+<div class="login-box">
+  <div class="login-stat">
+    <div class="n" style="color:#48bb78">0</div>
+    <div class="l">Connexions reussies</div>
+  </div>
+  <div class="login-divider"></div>
+  <div class="login-stat">
+    <div class="n" style="color:#ed8936">0</div>
+    <div class="l">Echecs de connexion</div>
+  </div>
+  <div class="login-divider"></div>
+  <div class="login-stat" style="flex:2;text-align:left;padding-left:8px">
+    <div style="font-size:.8rem;color:#4a5568;line-height:1.6">
+      Seuil brute force : <b>5 echecs / 5 min</b><br>
+      <span style='color:#48bb78'>Normal — sous le seuil</span>
+    </div>
+  </div>
+</div>
+
 <div class="section-title">Alertes actives</div>
-<div class='alert alert-ok'>Aucune alerte — tous les services fonctionnent normalement</div>
+<div class='alert alert-ok'>Aucune alerte — tous les services fonctionnent normalement.</div>
 
 <div class="section-title">Metriques par service</div>
 
   <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span class='svc-name'>auth-service</span>
-        <span class='badge-up'>UP</span>
+        <span class='svc-name'>auth-service</span><span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3001</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>72.4 MB</div>
+        <div class='metric-value'>71.9 MB</div>
         <div class='progress-bar'><div style='width:36%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.5913%</div>
+        <div class='metric-value'>0.57%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>8536</div>
+        <div class='metric-value'>12094</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>3.59 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.40 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -114,31 +144,30 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span class='svc-name'>ticket-service</span>
-        <span class='badge-up'>UP</span>
+        <span class='svc-name'>ticket-service</span><span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3002</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>68.3 MB</div>
-        <div class='progress-bar'><div style='width:34%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>69.2 MB</div>
+        <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.6050%</div>
+        <div class='metric-value'>0.54%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>1044</div>
+        <div class='metric-value'>4602</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>4.12 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.58 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -152,31 +181,30 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span class='svc-name'>user-service</span>
-        <span class='badge-up'>UP</span>
+        <span class='svc-name'>user-service</span><span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3003</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>68.8 MB</div>
-        <div class='progress-bar'><div style='width:34%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>71.3 MB</div>
+        <div class='progress-bar'><div style='width:36%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.6553%</div>
+        <div class='metric-value'>0.59%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>1054</div>
+        <div class='metric-value'>4612</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>4.14 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.47 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -190,31 +218,30 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span class='svc-name'>attachment-service</span>
-        <span class='badge-up'>UP</span>
+        <span class='svc-name'>attachment-service</span><span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3004</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>69.5 MB</div>
-        <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>68.4 MB</div>
+        <div class='progress-bar'><div style='width:34%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.6336%</div>
+        <div class='metric-value'>0.59%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>1047</div>
+        <div class='metric-value'>4609</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>3.78 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.27 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -228,31 +255,30 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
-        <span class='svc-name'>product-service</span>
-        <span class='badge-up'>UP</span>
+        <span class='svc-name'>product-service</span><span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3005</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>68.9 MB</div>
-        <div class='progress-bar'><div style='width:34%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>69.6 MB</div>
+        <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>0.6496%</div>
+        <div class='metric-value'>0.58%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>1045</div>
+        <div class='metric-value'>4607</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#48bb78'>3.82 ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.18 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -268,21 +294,19 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
 <div class="pipe-flow">
   <div class="pipe-box"><div class="pt">Node.js + Express</div><div class="ps">Winston + Morgan</div></div>
   <div class="arr">→</div>
-  <div class="pipe-box"><div class="pt">Logs JSON</div><div class="ps">Horodates + niveau</div></div>
-  <div class="arr">+</div>
   <div class="pipe-box"><div class="pt">prom-client</div><div class="ps">Metriques /metrics</div></div>
   <div class="arr">→</div>
-  <div class="pipe-box"><div class="pt">Prometheus</div><div class="ps">Scrape 15s</div></div>
+  <div class="pipe-box"><div class="pt">Prometheus</div><div class="ps">Scrape toutes 15s</div></div>
   <div class="arr">→</div>
-  <div class="pipe-box"><div class="pt">Ce rapport</div><div class="ps">Auto-genere</div></div>
+  <div class="pipe-box"><div class="pt">gen_report.sh</div><div class="ps">Rapport HTML + PDF</div></div>
 </div>
 
-<div class="section-title">Commandes de debogage utiles</div>
+<div class="section-title">Commandes de debogage</div>
 <div class="debug-box">
-  <div><span class="comment"># Voir les logs en temps reel d un service</span></div>
+  <div><span class="comment"># Voir les logs en temps reel</span></div>
   <div><span class="cmd">oc logs -n ticket-system deployment/auth-service -f</span></div>
   <div>&nbsp;</div>
-  <div><span class="comment"># Voir les derniers logs d erreur</span></div>
+  <div><span class="comment"># Filtrer les erreurs uniquement</span></div>
   <div><span class="cmd">oc logs -n ticket-system deployment/auth-service --tail=100 | grep error</span></div>
   <div>&nbsp;</div>
   <div><span class="comment"># Etat de tous les pods</span></div>
@@ -291,21 +315,16 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
   <div><span class="comment"># Redemarrer un service</span></div>
   <div><span class="cmd">oc rollout restart deployment/auth-service -n ticket-system</span></div>
   <div>&nbsp;</div>
-  <div><span class="comment"># Voir les evenements du namespace (crashes, OOM, etc)</span></div>
+  <div><span class="comment"># Evenements recents (crashes, OOM...)</span></div>
   <div><span class="cmd">oc get events -n ticket-system --sort-by=.lastTimestamp | tail -20</span></div>
-  <div>&nbsp;</div>
-  <div><span class="comment"># Regenerer ce rapport</span></div>
-  <div><span class="cmd">cd ~/Ticket-system && git pull && oc exec -n ticket-system $(oc get pod -n ticket-system -l app=prometheus -o jsonpath='{.items[0].metadata.name}') -- sh -c "$(cat Monitoring/gen_report.sh)" && oc cp ticket-system/$(oc get pod -n ticket-system -l app=prometheus -o jsonpath='{.items[0].metadata.name}'):/tmp/report.html ./report.html && git add report.html && git commit -m "rapport $(date +%Y%m%d-%H%M)" && git push</span></div>
 </div>
 
-<div class="section-title">Logs par service — commandes rapides</div>
-<div style="background:white;border-radius:10px;padding:16px;border:1px solid #e2e8f0">
-<div class='cmd-row'><span class='cmd-label'>auth-service</span><code>oc logs -n ticket-system deployment/auth-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>ticket-service</span><code>oc logs -n ticket-system deployment/ticket-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>user-service</span><code>oc logs -n ticket-system deployment/user-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>attachment-service</span><code>oc logs -n ticket-system deployment/attachment-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>product-service</span><code>oc logs -n ticket-system deployment/product-service --tail=50</code></div>
-</div>
+<div class="section-title">Logs par service — acces rapide</div>
+<div style="background:white;border-radius:10px;padding:16px;border:1px solid #e2e8f0"><div class='cmd-row'><span class='cmd-label'>auth-service</span><code>oc logs -n ticket-system deployment/auth-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>ticket-service</span><code>oc logs -n ticket-system deployment/ticket-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>user-service</span><code>oc logs -n ticket-system deployment/user-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>attachment-service</span><code>oc logs -n ticket-system deployment/attachment-service --tail=50</code></div><div class='cmd-row'><span class='cmd-label'>product-service</span><code>oc logs -n ticket-system deployment/product-service --tail=50</code></div></div>
 
 </div>
 <div class="footer">
-  Ticket System v2.0 &nbsp;·&nbsp; OpenShift Container Platform &nbsp;·&nbsp; Namespace: ticket-system &nbsp;·&nbsp; 5 microservices &nbsp;·&nbsp; 2026-05-29 09:33:57 UTC
+  Ticket System v2.0 &nbsp;·&nbsp; OpenShift Container Platform &nbsp;·&nbsp; Namespace: ticket-system &nbsp;·&nbsp; 5 microservices &nbsp;·&nbsp; 2026-05-29 14:07:43 UTC
 </div>
 </body>
 </html>
