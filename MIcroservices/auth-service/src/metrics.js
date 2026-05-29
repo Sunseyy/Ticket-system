@@ -9,4 +9,12 @@ const httpRequestDuration = new client.Histogram({
   registers: [register]
 });
 
-module.exports = { register, httpRequestDuration };
+// NEW — login counter for brute force detection
+const loginAttempts = new client.Counter({
+  name: 'auth_login_attempts_total',
+  help: 'Nombre de tentatives de login',
+  labelNames: ['status', 'reason'],
+  registers: [register]
+});
+
+module.exports = { register, httpRequestDuration, loginAttempts };
