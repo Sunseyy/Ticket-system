@@ -89,11 +89,6 @@ jobs:
           sudo mv oc /usr/local/bin/
           oc version --client
           
-      - name: Trigger OpenShift redeploy
-        run: |
-          oc import-image auth-service:latest \
-            --from=ghcr.io/sunseyy/auth-service:latest \
-            --confirm \
-            -n ticket-system
+
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
