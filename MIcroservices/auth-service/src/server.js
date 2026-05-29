@@ -198,7 +198,28 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+if (!email || !password) {
+    loginAttempts.inc({ status: 'failure', reason: 'missing_fields' }); // ADD
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+  
+    if (result.rows.length === 0) {
+      loginAttempts.inc({ status: 'failure', reason: 'user_not_found' }); // ADD
+      return res.status(400).json({ error: "Invalid email or password" });
+    }
 
+    if (!valid) {
+      loginAttempts.inc({ status: 'failure', reason: 'wrong_password' }); // ADD
+      return res.status(400).json({ error: "Invalid email or password" });
+    }
+
+    loginAttempts.inc({ status: 'success', reason: 'ok' }); // ADD
+    const { password_hash, ...safeUser } = user;
+
+  } catch (err) {
+    loginAttempts.inc({ status: 'failure', reason: 'server_error' }); // ADD
+    res.status(500).json({ error: "Server error" });
+  }
 /* ───────────────────── SERVER ───────────────────── */
 
 const server = app.listen(config.port, "0.0.0.0", () => {
