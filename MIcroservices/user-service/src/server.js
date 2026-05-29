@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
-
+const logger = require('./logger');
+const morgan = require('morgan');
+const { register, httpRequestDuration } = require('./metrics');
 const app = express();
 
 const config = {
@@ -32,7 +34,25 @@ app.use(
   })
 );
 app.use(express.json());
+// Morgan → Winston
+app.use(morgan('combined', {
+  stream: { write: (msg) => logger.info(msg.trim()) }
+}));
 
+// Middleware métriques
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.path, status: res.statusCode });
+  });
+  next();
+});
+
+// Endpoint Prometheus
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 const pool = new Pool({
   ...config.db,
   max: 10,
