@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
-
+const logger = require('./logger');
+const morgan = require('morgan');
+const { register, httpRequestDuration } = require('./metrics');
 const app = express();
 
 const config = {
@@ -32,7 +34,25 @@ app.use(
   })
 );
 app.use(express.json());
+// Morgan → Winston
+app.use(morgan('combined', {
+  stream: { write: (msg) => logger.info(msg.trim()) }
+}));
 
+// Middleware métriques
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.path, status: res.statusCode });
+  });
+  next();
+});
+
+// Endpoint Prometheus
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 const pool = new Pool({
   ...config.db,
   max: 10,
@@ -68,7 +88,7 @@ app.post("/tickets", async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error("Create ticket error:", err);
+    logger.error("Create ticket error:", err);
     res.status(500).json({ error: "Failed to create ticket" });
   }
 });
@@ -119,7 +139,7 @@ app.get("/tickets", async (req, res) => {
     }
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching tickets:", err);
+    logger.error("Error fetching tickets:", err);
     res.status(500).json({ error: "Failed to fetch tickets" });
   }
 });
@@ -139,7 +159,7 @@ app.get("/tickets/latest", async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching latest tickets:", err);
+    logger.error("Error fetching latest tickets:", err);
     res.status(500).json({ error: "Failed to fetch tickets" });
   }
 });
@@ -161,7 +181,7 @@ app.get("/tickets/:id", async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: "Ticket not found" });
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("Ticket details error:", err);
+    logger.error("Ticket details error:", err);
     res.status(500).json({ error: "Failed to fetch ticket" });
   }
 });
@@ -174,7 +194,7 @@ app.get("/agents", async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
+    logger.error(err);
     res.status(500).json({ error: "Failed to fetch agents" });
   }
 });
@@ -192,7 +212,7 @@ app.put("/tickets/:id/assign", async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: "Ticket not found" });
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err);
+    logger.error(err);
     res.status(500).json({ error: "Failed to assign ticket" });
   }
 });
@@ -234,7 +254,7 @@ app.put("/tickets/:id/status", async (req, res) => {
     );
     res.json(updateResult.rows[0]);
   } catch (err) {
-    console.error("Update status error:", err);
+    logger.error("Update status error:", err);
     res.status(500).json({ error: "Failed to update ticket status" });
   }
 });
@@ -268,7 +288,7 @@ app.delete("/tickets/:id", async (req, res) => {
     res.json({ message: "Ticket deleted" });
   } catch (err) {
     await pool.query("ROLLBACK");
-    console.error("Delete ticket error:", err);
+    logger.error("Delete ticket error:", err);
     res.status(500).json({ error: "Failed to delete ticket" });
   }
 });
@@ -287,7 +307,7 @@ app.get("/tickets/:id/comments", async (req, res) => {
     );
     res.json({ comments: commentsResult.rows });
   } catch (err) {
-    console.error("Error fetching comments:", err);
+    logger.error("Error fetching comments:", err);
     res.status(500).json({ error: "Failed to fetch comments" });
   }
 });
@@ -335,7 +355,7 @@ app.post("/tickets/:id/comments", async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error("Error adding comment:", err);
+    logger.error("Error adding comment:", err);
     res.status(500).json({ error: "Failed to add comment" });
   }
 });
@@ -355,7 +375,7 @@ app.post("/internal/sync-user", async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("Sync user error:", err);
+    logger.error("Sync user error:", err);
     res.status(500).json({ error: "Failed to sync user" });
   }
 });
@@ -371,18 +391,18 @@ app.post("/internal/sync-user-delete", async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    console.error("Sync user delete error:", err);
+    logger.error("Sync user delete error:", err);
     res.status(500).json({ error: "Failed to sync deletion" });
   }
 });
 
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
-  console.log(`✅ ticket-service running on port ${config.port}`);
+  logger.info(`✅ ticket-service running on port ${config.port}`);
 });
 
 const shutdown = (signal) => {
-  console.log(`${signal} received — shutting down`);
+  logger.info(`${signal} received — shutting down`);
   server.close(() => pool.end(() => process.exit(0)));
   setTimeout(() => process.exit(1), 10000);
 };
