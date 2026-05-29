@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rapport Observabilite - Ticket System - 2026-05-29 09:28:33 UTC</title>
+<title>Rapport Observabilite - Ticket System - 2026-05-29 09:33:57 UTC</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Segoe UI,Arial,sans-serif;background:#edf2f7;color:#1a202c;font-size:14px}
@@ -55,7 +55,7 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
 <div class="header">
   <h1>Rapport d Observabilite — Ticket System</h1>
   <div class="sub">Architecture Microservices · OpenShift Container Platform · Namespace: ticket-system</div>
-  <div class="ts">Genere le 2026-05-29 09:28:33 UTC</div>
+  <div class="ts">Genere le 2026-05-29 09:33:57 UTC</div>
 </div>
 <div class="wrap">
 
@@ -73,34 +73,34 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
 
 <div class="section-title">Metriques par service</div>
 
-  <div class='svc-card' style='border-top:4px solid #e53e3e'>
+  <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
         <span class='svc-name'>auth-service</span>
-        <span class='badge-down'>DOWN</span>
+        <span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3001</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>N/A MB</div>
-        <div class='progress-bar'><div style='width:0%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>72.4 MB</div>
+        <div class='progress-bar'><div style='width:36%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>N/A%</div>
+        <div class='metric-value'>0.5913%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>0</div>
+        <div class='metric-value'>8536</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#ed8936'>N/A ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.59 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -108,39 +108,37 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
       <span>Erreurs HTTP:</span>
       <span style='color:#ed8936'>4xx: <b>0</b></span>
       <span style='color:#48bb78'>5xx: <b>0</b></span>
-      
-      
       <span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>
     </div>
   </div>
-  <div class='svc-card' style='border-top:4px solid #e53e3e'>
+  <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
         <span class='svc-name'>ticket-service</span>
-        <span class='badge-down'>DOWN</span>
+        <span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3002</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>N/A MB</div>
-        <div class='progress-bar'><div style='width:0%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>68.3 MB</div>
+        <div class='progress-bar'><div style='width:34%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>N/A%</div>
+        <div class='metric-value'>0.6050%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>0</div>
+        <div class='metric-value'>1044</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#ed8936'>N/A ms</div>
+        <div class='metric-value' style='color:#48bb78'>4.12 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -148,39 +146,37 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
       <span>Erreurs HTTP:</span>
       <span style='color:#ed8936'>4xx: <b>0</b></span>
       <span style='color:#48bb78'>5xx: <b>0</b></span>
-      
-      
       <span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>
     </div>
   </div>
-  <div class='svc-card' style='border-top:4px solid #e53e3e'>
+  <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
         <span class='svc-name'>user-service</span>
-        <span class='badge-down'>DOWN</span>
+        <span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3003</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>N/A MB</div>
-        <div class='progress-bar'><div style='width:0%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>68.8 MB</div>
+        <div class='progress-bar'><div style='width:34%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>N/A%</div>
+        <div class='metric-value'>0.6553%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>0</div>
+        <div class='metric-value'>1054</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#ed8936'>N/A ms</div>
+        <div class='metric-value' style='color:#48bb78'>4.14 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -188,39 +184,37 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
       <span>Erreurs HTTP:</span>
       <span style='color:#ed8936'>4xx: <b>0</b></span>
       <span style='color:#48bb78'>5xx: <b>0</b></span>
-      
-      
       <span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>
     </div>
   </div>
-  <div class='svc-card' style='border-top:4px solid #e53e3e'>
+  <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
         <span class='svc-name'>attachment-service</span>
-        <span class='badge-down'>DOWN</span>
+        <span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3004</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>N/A MB</div>
-        <div class='progress-bar'><div style='width:0%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>69.5 MB</div>
+        <div class='progress-bar'><div style='width:35%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>N/A%</div>
+        <div class='metric-value'>0.6336%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>0</div>
+        <div class='metric-value'>1047</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#ed8936'>N/A ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.78 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -228,39 +222,37 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
       <span>Erreurs HTTP:</span>
       <span style='color:#ed8936'>4xx: <b>0</b></span>
       <span style='color:#48bb78'>5xx: <b>0</b></span>
-      
-      
       <span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>
     </div>
   </div>
-  <div class='svc-card' style='border-top:4px solid #e53e3e'>
+  <div class='svc-card' style='border-top:4px solid #48bb78'>
     <div class='svc-header'>
       <div style='display:flex;align-items:center;gap:10px'>
         <span class='svc-name'>product-service</span>
-        <span class='badge-down'>DOWN</span>
+        <span class='badge-up'>UP</span>
       </div>
       <span style='font-size:.75rem;color:#718096'>Port: 3005</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
         <div class='metric-label'>Memoire RSS</div>
-        <div class='metric-value'>N/A MB</div>
-        <div class='progress-bar'><div style='width:0%;background:#4299e1;height:4px;border-radius:2px'></div></div>
+        <div class='metric-value'>68.9 MB</div>
+        <div class='progress-bar'><div style='width:34%;background:#4299e1;height:4px;border-radius:2px'></div></div>
         <div class='metric-hint'>sur 200 MB alloues</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>CPU usage</div>
-        <div class='metric-value'>N/A%</div>
+        <div class='metric-value'>0.6496%</div>
         <div class='metric-hint'>moyenne sur 5 minutes</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Requetes totales</div>
-        <div class='metric-value'>0</div>
+        <div class='metric-value'>1045</div>
         <div class='metric-hint'>depuis le demarrage</div>
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:#ed8936'>N/A ms</div>
+        <div class='metric-value' style='color:#48bb78'>3.82 ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -268,8 +260,6 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
       <span>Erreurs HTTP:</span>
       <span style='color:#ed8936'>4xx: <b>0</b></span>
       <span style='color:#48bb78'>5xx: <b>0</b></span>
-      
-      
       <span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>
     </div>
   </div>
@@ -315,7 +305,7 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
 
 </div>
 <div class="footer">
-  Ticket System v2.0 &nbsp;·&nbsp; OpenShift Container Platform &nbsp;·&nbsp; Namespace: ticket-system &nbsp;·&nbsp; 5 microservices &nbsp;·&nbsp; 2026-05-29 09:28:33 UTC
+  Ticket System v2.0 &nbsp;·&nbsp; OpenShift Container Platform &nbsp;·&nbsp; Namespace: ticket-system &nbsp;·&nbsp; 5 microservices &nbsp;·&nbsp; 2026-05-29 09:33:57 UTC
 </div>
 </body>
 </html>
