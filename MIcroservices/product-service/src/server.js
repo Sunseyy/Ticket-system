@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
-
+const logger = require('./logger');
+const morgan = require('morgan');
+const { register, httpRequestDuration } = require('./metrics');
 const app = express();
 
 
@@ -37,6 +39,25 @@ app.use(
 );
 
 app.use(express.json());
+// Morgan → Winston
+app.use(morgan('combined', {
+  stream: { write: (msg) => logger.info(msg.trim()) }
+}));
+
+// Middleware métriques
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.path, status: res.statusCode });
+  });
+  next();
+});
+
+// Endpoint Prometheus
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 /* ───────────────────── DATABASE ───────────────────── */
 
@@ -73,7 +94,7 @@ app.get("/products", async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error("Error fetching products:", error);
+    logger.error("Error fetching products:", error);
     res.status(500).json({
       error: "Failed to fetch products"
     });
@@ -103,7 +124,7 @@ app.get("/products/:id", async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    console.error("Error fetching product:", error);
+    logger.error("Error fetching product:", error);
     res.status(500).json({
       error: "Failed to fetch product"
     });
@@ -135,7 +156,7 @@ app.post("/products", async (req, res) => {
       data: newProduct
     });
   } catch (error) {
-    console.error("Error creating product:", error);
+    logger.error("Error creating product:", error);
     res.status(500).json({
       error: "Failed to create product"
     });
@@ -173,7 +194,7 @@ app.put("/products/:id", async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    console.error("Error updating product:", error);
+    logger.error("Error updating product:", error);
     res.status(500).json({
       error: "Failed to update product"
     });
@@ -204,7 +225,7 @@ app.delete("/products/:id", async (req, res) => {
       message: "Product deleted successfully"
     });
   } catch (error) {
-    console.error("Error deleting product:", error);
+    logger.error("Error deleting product:", error);
     res.status(500).json({
       error: "Failed to delete product"
     });
