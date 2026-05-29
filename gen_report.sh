@@ -10,51 +10,78 @@ wget -qO- "$PROM/api/v1/query?query=sum+by(job)(rate(http_request_duration_secon
 wget -qO- "$PROM/api/v1/query?query=sum+by(job,status)(http_request_duration_seconds_count{status=~'4..|5..'})" > /tmp/err.json
 wget -qO- "$PROM/api/v1/query?query=up" > /tmp/up.json
 wget -qO- "$PROM/api/v1/query?query=process_open_fds" > /tmp/fds.json
-wget -qO- "$PROM/api/v1/query_range?query=process_resident_memory_bytes&start=$(date -u -d '1 hour ago' +%s 2>/dev/null || date -u -v-1H +%s)&end=$(date -u +%s)&step=300" > /tmp/mem_trend.json
-# ADD HERE — debug only
-cat /tmp/up.json   # <--- HERE
-echo "---"        # <--- and this
 
-wget -qO- "$PROM/api/v1/query?query=process_open_fds" > /tmp/fds.json
-# ...rest of script
-
+# -------------------------------------------------------
+# FIXED: extract value for a given job from a json file
+# The old grep broke because "job" is inside "metric":{} 
+# but "value" is outside — [^}]* can't cross that boundary.
+# New approach: find the line/chunk containing the job name,
+# then extract the last quoted number which is always the value.
+# -------------------------------------------------------
 get_val() {
-  grep -o "\"job\":\"$1\"[^}]*\"value\":\[[^,]*,\"[^\"]*\"" /tmp/$2.json | grep -o '"[0-9.e+\-]*"$' | tr -d '"' | head -1
+  # $1 = job name, $2 = file base name (without .json)
+  grep -o "\"job\":\"$1\"[^]]*\]" /tmp/$2.json | grep -o "\"[0-9.eE+\-]*\"\]$" | tr -d '"[]' | head -1
 }
 
 get_err() {
-  grep -o "\"job\":\"$1\",\"status\":\"$2\"[^}]*\"value\":\[[^,]*,\"[^\"]*\"" /tmp/err.json | grep -o '"[0-9.]*"$' | tr -d '"' | head -1
+  # $1 = job, $2 = status regex label (e.g. 4xx stored as actual status codes)
+  grep -o "\"job\":\"$1\",\"status\":\"[^\"]*\"[^]]*\]" /tmp/err.json | grep "$2" | grep -o "\"[0-9.]*\"\]$" | tr -d '"[]' | head -1
 }
 
-mb() { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.1f", $1/1024/1024}'; }
+# up metric: value is always "1" or "0" at end of its result object
+get_up() {
+  grep -o "\"job\":\"$1\"[^]]*\]" /tmp/up.json | grep -o "\"[01]\"\]$" | tr -d '"[]' | head -1
+}
+
+mb()  { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.1f", $1/1024/1024}'; }
 pct() { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.4f", $1}'; }
-ms() { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.2f", $1}'; }
+ms()  { v=$1; [ -z "$v" ] && echo "N/A" || echo "$v" | awk '{printf "%.2f", $1}'; }
 orz() { [ -z "$1" ] && echo "0" || echo "$1" | awk '{printf "%.0f", $1}'; }
 
 SERVICES="auth-service ticket-service user-service attachment-service product-service"
 PORTS="3001 3002 3003 3004 3005"
 
-# Check alerts
+# -------------------------------------------------------
+# Alerts
+# -------------------------------------------------------
 ALERTS=""
+SERVICES_DOWN=0
+SERVICES_UP=0
+
 for svc in $SERVICES; do
+  up_val=$(get_up $svc)
+
+  if [ "$up_val" != "1" ]; then
+    SERVICES_DOWN=$((SERVICES_DOWN+1))
+    ALERTS="$ALERTS<div class='alert alert-crit'>Service <b>$svc</b> est DOWN — verifier le pod et les logs</div>"
+  else
+    SERVICES_UP=$((SERVICES_UP+1))
+  fi
+
   mem=$(get_val $svc mem)
   lat=$(get_val $svc lat)
   mem_mb=$(mb $mem)
   lat_ms=$(ms $lat)
-  
-  # Memory alert > 150MB
+
   if [ -n "$mem" ]; then
-    echo "$mem" | awk '{if($1>157286400) exit 0; exit 1}' && ALERTS="$ALERTS<div class='alert alert-warn'>Memoire elevee sur <b>$svc</b>: ${mem_mb} MB (seuil: 150 MB)</div>"
+    echo "$mem" | awk '{if($1>157286400) exit 0; exit 1}' && \
+      ALERTS="$ALERTS<div class='alert alert-warn'>Memoire elevee sur <b>$svc</b>: ${mem_mb} MB (seuil: 150 MB)</div>"
   fi
-  # Latency alert > 50ms
   if [ -n "$lat" ]; then
-    echo "$lat" | awk '{if($1>50) exit 0; exit 1}' && ALERTS="$ALERTS<div class='alert alert-warn'>Latence elevee sur <b>$svc</b>: ${lat_ms} ms (seuil: 50 ms)</div>"
+    echo "$lat" | awk '{if($1>50) exit 0; exit 1}' && \
+      ALERTS="$ALERTS<div class='alert alert-warn'>Latence elevee sur <b>$svc</b>: ${lat_ms} ms (seuil: 50 ms)</div>"
   fi
 done
 
 [ -z "$ALERTS" ] && ALERTS="<div class='alert alert-ok'>Aucune alerte — tous les services fonctionnent normalement</div>"
 
-# Build service rows
+KPI_UP="${SERVICES_UP}/5"
+KPI_COLOR="#48bb78"
+[ "$SERVICES_DOWN" -gt 0 ] && KPI_COLOR="#e53e3e"
+
+# -------------------------------------------------------
+# Service cards
+# -------------------------------------------------------
 SVC_ROWS=""
 i=0
 for svc in $SERVICES; do
@@ -63,28 +90,39 @@ for svc in $SERVICES; do
   cpu=$(get_val $svc cpu)
   req=$(get_val $svc req)
   lat=$(get_val $svc lat)
-  e4=$(orz "$(get_err $svc '4[0-9][0-9]')")
-  e5=$(orz "$(get_err $svc '5[0-9][0-9]')")
-  
+  e4=$(orz "$(get_err $svc '4')")
+  e5=$(orz "$(get_err $svc '5')")
+
   mem_v=$(mb $mem)
   cpu_v=$(pct $cpu)
   req_v=$(orz $req)
   lat_v=$(ms $lat)
 
-  # Status color for errors
   err_color="#48bb78"
   [ "$e5" != "0" ] && err_color="#e53e3e"
   [ "$e4" != "0" ] && [ "$e5" = "0" ] && err_color="#ed8936"
 
-  # Memory bar width
-  mem_pct=$(echo "$mem" | awk '{printf "%.0f", ($1/1024/1024)/200*100}')
-  [ -z "$mem_pct" ] && mem_pct=0
-  [ "$mem_pct" -gt 100 ] && mem_pct=100
+  mem_pct=0
+  [ -n "$mem" ] && mem_pct=$(echo "$mem" | awk '{v=($1/1024/1024)/200*100; if(v>100) v=100; printf "%.0f", v}')
 
-  # Health indicator
-  up_val=$(grep -o "\"job\":\"$svc\"[^}]*\"value\":\[[^,]*,\"[^\"]*\"" /tmp/up.json | grep -o '"[01]"$' | tr -d '"')
-  [ "$up_val" = "1" ] && status_badge="<span class='badge-up'>UP</span>" || status_badge="<span class='badge-down'>DOWN</span>"
-  [ "$up_val" = "1" ] && border_color="#48bb78" || border_color="#e53e3e"
+  up_val=$(get_up $svc)
+  if [ "$up_val" = "1" ]; then
+    status_badge="<span class='badge-up'>UP</span>"
+    border_color="#48bb78"
+  else
+    status_badge="<span class='badge-down'>DOWN</span>"
+    border_color="#e53e3e"
+  fi
+
+  lat_color="#48bb78"
+  [ -n "$lat" ] && lat_color=$(echo "$lat_v" | awk '{if($1>20) print "#ed8936"; else print "#48bb78"}')
+
+  err_badge=""
+  [ "$e5" != "0" ] && err_badge="<span class='badge-err'>CRITIQUE — verifier les logs</span>"
+  [ "$e4" != "0" ] && [ "$e5" = "0" ] && err_badge="<span class='badge-warn'>Requetes invalides detectees</span>"
+  [ "$e4" = "0" ] && [ "$e5" = "0" ] && err_badge="<span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>"
+
+  PORT=$(echo $PORTS | cut -d' ' -f$i)
 
   SVC_ROWS="$SVC_ROWS
   <div class='svc-card' style='border-top:4px solid $border_color'>
@@ -93,7 +131,7 @@ for svc in $SERVICES; do
         <span class='svc-name'>$svc</span>
         $status_badge
       </div>
-      <span style='font-size:.75rem;color:#718096'>Port: $(echo $PORTS | cut -d' ' -f$i)</span>
+      <span style='font-size:.75rem;color:#718096'>Port: $PORT</span>
     </div>
     <div class='metrics-grid'>
       <div class='metric-box'>
@@ -114,7 +152,7 @@ for svc in $SERVICES; do
       </div>
       <div class='metric-box'>
         <div class='metric-label'>Latence moyenne</div>
-        <div class='metric-value' style='color:$(echo $lat_v | awk "{if(\$1>20) print \"#ed8936\"; else print \"#48bb78\"}")'>${lat_v} ms</div>
+        <div class='metric-value' style='color:${lat_color}'>${lat_v} ms</div>
         <div class='metric-hint'>par requete HTTP</div>
       </div>
     </div>
@@ -122,19 +160,22 @@ for svc in $SERVICES; do
       <span>Erreurs HTTP:</span>
       <span style='color:#ed8936'>4xx: <b>$e4</b></span>
       <span style='color:$err_color'>5xx: <b>$e5</b></span>
-      $([ "$e5" != "0" ] && echo "<span class='badge-err'>CRITIQUE — verifier les logs</span>")
-      $([ "$e4" != "0" ] && [ "$e5" = "0" ] && echo "<span class='badge-warn'>Requetes invalides detectees</span>")
-      $([ "$e4" = "0" ] && [ "$e5" = "0" ] && echo "<span style='color:#48bb78;font-size:.75rem'>Aucune erreur</span>")
+      $err_badge
     </div>
   </div>"
 done
 
-# Build log commands section
+# -------------------------------------------------------
+# Log commands
+# -------------------------------------------------------
 LOG_CMDS=""
 for svc in $SERVICES; do
   LOG_CMDS="$LOG_CMDS<div class='cmd-row'><span class='cmd-label'>$svc</span><code>oc logs -n ticket-system deployment/$svc --tail=50</code></div>"
 done
 
+# -------------------------------------------------------
+# HTML report
+# -------------------------------------------------------
 cat > /tmp/report.html << HTML
 <!DOCTYPE html>
 <html lang="fr">
@@ -199,7 +240,7 @@ code{background:#edf2f7;padding:3px 8px;border-radius:4px;font-size:.75rem;font-
 
 <div class="section-title">Resume</div>
 <div class="kpi-grid">
-  <div class="kpi"><div class="n" style="color:#48bb78">5/5</div><div class="l">Services UP</div></div>
+  <div class="kpi"><div class="n" style="color:$KPI_COLOR">$KPI_UP</div><div class="l">Services UP</div></div>
   <div class="kpi"><div class="n" style="color:#4299e1">15s</div><div class="l">Scrape interval</div></div>
   <div class="kpi"><div class="n" style="color:#9f7aea">24</div><div class="l">NetworkPolicies</div></div>
   <div class="kpi"><div class="n" style="color:#ed8936">5</div><div class="l">Bases PostgreSQL</div></div>
@@ -258,5 +299,5 @@ $LOG_CMDS
 </body>
 </html>
 HTML
-echo "rapport genere avec succes — /tmp/report.html"
 
+echo "rapport genere avec succes — /tmp/report.html"
