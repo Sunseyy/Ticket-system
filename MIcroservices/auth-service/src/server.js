@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const { Pool } = require("pg");
 const logger = require('./logger');
 const morgan = require('morgan');
-const { register, httpRequestDuration } = require('./metrics');
+const { register, httpRequestDuration, loginAttempts } = require('./metrics');
 const app = express();
 
 /* ───────────────────── CONFIG ───────────────────── */
