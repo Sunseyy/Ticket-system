@@ -4,7 +4,9 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { Pool } = require("pg");
-
+const logger = require('./logger');
+const morgan = require('morgan');
+const { register, httpRequestDuration } = require('./metrics');
 const app = express();
 
 const config = {
@@ -37,7 +39,25 @@ app.use(
   })
 );
 app.use(express.json());
+// Morgan → Winston
+app.use(morgan('combined', {
+  stream: { write: (msg) => logger.info(msg.trim()) }
+}));
 
+// Middleware métriques
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.path, status: res.statusCode });
+  });
+  next();
+});
+
+// Endpoint Prometheus
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 const pool = new Pool({
   ...config.db,
   max: 10,
@@ -89,7 +109,7 @@ app.post("/tickets/:id/attachments", upload.single("file"), async (req, res) => 
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error("Error uploading attachment:", err);
+    logger.error("Error uploading attachment:", err);
     if (file) fs.unlinkSync(file.path);
     res.status(500).json({ error: "Failed to upload attachment" });
   }
@@ -108,7 +128,7 @@ app.get("/tickets/:id/attachments", async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching attachments:", err);
+    logger.error("Error fetching attachments:", err);
     res.status(500).json({ error: "Failed to fetch attachments" });
   }
 });
@@ -129,7 +149,7 @@ app.delete("/attachments/:id", async (req, res) => {
 
 // ─── Graceful shutdown ────────────────────────────────────────────────────────
 const server = app.listen(config.port, "0.0.0.0", () => {
-  console.log(`✅ attachment-service running on port ${config.port}`);
+  logger.info(`✅ attachment-service running on port ${config.port}`);
 });
 
 const shutdown = (signal) => {
