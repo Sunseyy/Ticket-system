@@ -11,6 +11,12 @@ wget -qO- "$PROM/api/v1/query?query=sum+by(job,status)(http_request_duration_sec
 wget -qO- "$PROM/api/v1/query?query=up" > /tmp/up.json
 wget -qO- "$PROM/api/v1/query?query=process_open_fds" > /tmp/fds.json
 wget -qO- "$PROM/api/v1/query_range?query=process_resident_memory_bytes&start=$(date -u -d '1 hour ago' +%s 2>/dev/null || date -u -v-1H +%s)&end=$(date -u +%s)&step=300" > /tmp/mem_trend.json
+# ADD HERE — debug only
+cat /tmp/up.json   # <--- HERE
+echo "---"        # <--- and this
+
+wget -qO- "$PROM/api/v1/query?query=process_open_fds" > /tmp/fds.json
+# ...rest of script
 
 get_val() {
   grep -o "\"job\":\"$1\"[^}]*\"value\":\[[^,]*,\"[^\"]*\"" /tmp/$2.json | grep -o '"[0-9.e+\-]*"$' | tr -d '"' | head -1
@@ -253,3 +259,4 @@ $LOG_CMDS
 </html>
 HTML
 echo "rapport genere avec succes — /tmp/report.html"
+
